@@ -7,7 +7,7 @@ Deadline: **2026-10-30 11:45 PM EDT**
 - [x] Public repository URL — https://github.com/DOVRC/bragi-qloo
 - [x] Detectable open-source **LICENSE** file (MIT)
 - [x] Externally hosted demo — https://bragi-qloo.vercel.app (public; no auth wall)
-- [ ] Live Qloo on that URL (set **rotated** `QLOO_API_KEY` in Vercel Production, redeploy, confirm `/api/health/qloo`)
+- [x] Live Qloo on that URL (`/api/health/qloo` ok; Search + Discover live; Taste Journey verified)
 - [ ] English product description on Devpost (what it does + why Qloo-powered)
 - [x] Setup instructions — root `README.md` + [DEPLOYMENT.md](DEPLOYMENT.md)
 - [x] Testing instructions — `npm test`, `npm run qloo:smoke`, `npm run qloo:e2e`, [GUIDED_DEMO.md](GUIDED_DEMO.md)

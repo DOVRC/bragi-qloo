@@ -15,9 +15,9 @@
 | CD | Native Git → `DOVRC/bragi-qloo` / `main` |
 | CI | https://github.com/DOVRC/bragi-qloo/actions/workflows/ci.yml |
 | SSO / auth wall | Disabled (public demo) |
-| Live Qloo | Production `QLOO_API_KEY` set as Vercel **Secret**; redeploy required for lambdas |
+| Live Qloo | Verified — `/api/health/qloo` ok; live Search + Discover; Taste Journey steps 1–4 |
 
-Homepage and Taste Journey UI are public (HTTP 200). Prefer a provider-rotated key if any prior key appeared in screenshots. Do not use `SAMPLE_DATA_MODE=true` in production.
+Homepage and Taste Journey UI are public (HTTP 200). Production `QLOO_API_KEY` is a Vercel Secret. Prefer provider rotation if any prior key appeared in screenshots. Do not use `SAMPLE_DATA_MODE=true` in production.
 
 ## Completed
 
@@ -29,9 +29,9 @@ Homepage and Taste Journey UI are public (HTTP 200). Prefer a provider-rotated k
 
 ## Remaining
 
-1. Confirm `/api/health/qloo` → `ok: true` after env-aware redeploy; rotate at Qloo if the prior key was screenshot-exposed  
-2. One live guided demo smoke (`GUIDED_DEMO.md`)  
-3. Devpost entry paste URL + description  
+1. Rotate at Qloo if the prior key was screenshot-exposed, then update the Vercel Secret  
+2. Devpost entry paste https://bragi-qloo.vercel.app + English description  
+3. Optional screenshots for Devpost (no secrets)  
 
 ## Verify
 
