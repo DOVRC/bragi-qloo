@@ -43,12 +43,15 @@ body {
 
 .hero-surface {
   background:
-    radial-gradient(ellipse 90% 70% at 15% 20%, rgba(199, 206, 235, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 50% at 90% 0%, rgba(75, 98, 193, 0.22), transparent 50%),
-    linear-gradient(165deg, #0c121c 0%, #1d2939 45%, #101828 100%);
+    radial-gradient(ellipse 90% 70% at 15% 20%, rgba(199, 206, 235, 0.12), transparent 55%),
+    linear-gradient(165deg, #0c121c 0%, #161a2a 50%, #101828 100%);
 }
 
 .workspace-surface {
   background:
-    linear-gradient(180deg, rgba(240, 242, 250, 0.65) 0%, rgba(253, 245, 235, 1) 28%);
+    linear-gradient(180deg, rgba(240, 242, 250, 0.85) 0%, rgba(253, 245, 235, 1) 32%);
+}
+
+::selection {
+  background: rgba(75, 98, 193, 0.25);
 }

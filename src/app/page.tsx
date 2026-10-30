@@ -7,9 +7,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 
 export default function HomePage() {
   return (
-    <div id="top" className="min-h-screen bg-bragi-cream">
-      <div className="hero-surface">
-        <SiteHeader />
+    <div id="top" className="min-h-screen overflow-x-hidden bg-bragi-cream">
+      <SiteHeader />
+      <div className="hero-surface relative -mt-[4.25rem] pt-[4.25rem]">
         <HeroSection />
       </div>
       <DiscoveryWorkspace />

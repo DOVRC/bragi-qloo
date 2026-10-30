@@ -15,7 +15,7 @@ const sans = Outfit({
 export const metadata: Metadata = {
   title: "Bragi Taste Agent",
   description:
-    "Discover local creativity in Medellín through your cultural DNA — powered by Qloo Taste Intelligence.",
+    "Discover local art and culture in Medellín from the tastes you already love — powered by Qloo taste intelligence.",
 };
 
 export default function RootLayout({

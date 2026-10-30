@@ -1,10 +1,12 @@
 export function AboutSection() {
   return (
-    <section id="about" className="scroll-mt-20">
+    <section id="about" className="scroll-mt-24">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-bragi-navy/45">About Bragi</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-bragi-navy/45">
+              About Bragi
+            </p>
             <h2 className="mt-2 font-display text-3xl text-bragi-navy sm:text-4xl">
               Local creativity, culturally grounded
             </h2>

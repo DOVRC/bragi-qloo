@@ -46,3 +46,7 @@ canister_ids.json
 # local helper scripts not for publish
 scripts/_promote-root.ps1
 scripts/_secret-scan.mjs
+
+# visual QA artifacts
+qa-artifacts/
+
