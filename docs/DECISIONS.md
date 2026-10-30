@@ -1,12 +1,20 @@
 # Architecture decisions
 
-## ADR-001 — Standalone Next.js app under `apps/taste-agent/`
+## ADR-001 — Standalone Next.js app (originally under `apps/taste-agent/`)
+
+- **Date:** 2026-10-30  
+- **Status:** Superseded by ADR-010  
+- **Context:** Legacy stack is ICP (DFX, Azle, Podman, Internet Identity). Hackathon needs a public web demo with server-side Qloo.  
+- **Decision:** New Next.js App Router app; leave `src/usuarios_*` intact initially.  
+- **Consequences:** Dual trees until final cleanup.
+
+## ADR-010 — Promote Next.js to repository root; remove ICP
 
 - **Date:** 2026-10-30  
 - **Status:** Accepted  
-- **Context:** Legacy stack is ICP (DFX, Azle, Podman, Internet Identity). Hackathon needs a public web demo with server-side Qloo.  
-- **Decision:** New Next.js App Router app; leave `src/usuarios_*` intact.  
-- **Consequences:** No monorepo tooling beyond a folder; dual READMEs; clear submission target.
+- **Context:** Nested `apps/taste-agent` complicated Vercel and judging; ICP code is out of scope.  
+- **Decision:** Move Taste Agent to repo root; delete DFX/Azle/usuarios_* from tracked tree (history retained). Target remote `DOVRC/bragi-qloo`.  
+- **Consequences:** Single package.json; deploy root `.`; legacy only in git history.
 
 ## ADR-002 — Direct REST Qloo client (not harness in production)
 

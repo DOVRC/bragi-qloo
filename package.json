@@ -1,19 +1,36 @@
 {
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=7.0.0"
-  },
-  "name": "usuarios",
+  "name": "bragi-qloo",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "prebuild": "npm run prebuild --workspaces --if-present",
-    "pretest": "npm run prebuild --workspaces --if-present",
-    "start": "npm start --workspaces --if-present",
-    "test": "npm test --workspaces --if-present"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "qloo:smoke": "tsx scripts/qloo-smoke.ts",
+    "qloo:check-env": "tsx scripts/check-env.ts",
+    "qloo:probe": "tsx scripts/live-probe.ts",
+    "qloo:e2e": "tsx scripts/live-e2e.ts"
   },
-  "type": "module",
-  "workspaces": [
-    "src/usuarios_backend",
-    "src/usuarios_frontend"
-  ]
+  "dependencies": {
+    "next": "15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^2.1.9"
+  }
 }

@@ -4,8 +4,8 @@ Deadline: **2026-10-30 11:45 PM EDT**
 
 ## Required
 
-- [ ] Public repository URL (push `feature/qloo-taste-agent` or merge to `main`)
-- [ ] Detectable open-source **LICENSE** file (About section)
+- [x] Public repository URL — https://github.com/DOVRC/bragi-qloo
+- [x] Detectable open-source **LICENSE** file (MIT)
 - [ ] Externally hosted, publicly accessible demo (Vercel recommended)
 - [ ] English product description (what it does + why Qloo-powered)
 - [x] Setup instructions (clone, env, run, test) — `apps/taste-agent/README.md` + root README

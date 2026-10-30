@@ -1,115 +1,76 @@
-# Bragi
+# Bragi Taste Agent
 
-## Taste Agent (Qloo Agentic Hackathon 2026)
+**Discover local creativity through your cultural DNA.**
 
-The hackathon submission lives in **`apps/taste-agent/`** — a Next.js cultural discovery agent using Qloo Taste Intelligence for Medellín.
+Bragi is a Qloo-powered cultural discovery agent for Medellín. Share the artists, films, and genres you love; Bragi resolves them with Qloo Taste Intelligence, retrieves cross-domain affinities, and matches a curated local catalogue — with inspectable evidence.
 
-- Instructions for agents: [`AGENTS.md`](AGENTS.md)
-- Resume checkpoint: [`docs/STATUS.md`](docs/STATUS.md)
-- App setup: [`apps/taste-agent/README.md`](apps/taste-agent/README.md)
+Built for the [Qloo Agentic Hackathon 2026](https://qloo.devpost.com/) by **Daniel Ossa Velásquez** and **Yulian Bedoya** (Colombia).
 
-```bash
-cd apps/taste-agent
-cp .env.example .env.local   # add QLOO_API_KEY; never commit secrets
-npm install && npm run dev
+Repository: https://github.com/DOVRC/bragi-qloo
+
+## Why Qloo is essential
+
+Without Qloo, recommendations would be keyword guesses. With Qloo Search, Tags, and Insights, Bragi grounds matches in cultural entities and affinities. Changing preferences changes the evidence trail and ranking inputs.
+
+## Architecture
+
+```
+Browser UI (Next.js)
+  → POST /api/discover  |  GET /api/search  |  GET /api/health/qloo
+      → DiscoveryAgent
+          → Qloo Search / Tags / Insights (server-side X-Api-Key)
+          → Taste profile + catalogue ranking
 ```
 
-Legacy ICP marketplace code under `src/` is preserved and **not required** for the Taste Agent demo.
+No Internet Computer, DFX, wallets, or marketplace checkout in this product.
 
----
+## Setup
 
-# Bragi (legacy) 🎨📱
-
-## Descripción
-Bragi es una innovadora plataforma web y app móvil que revoluciona la manera en que los artistas comparten su talento y los clientes descubren servicios artísticos en la ciudad de Medellín. Con Bragi, los artistas pueden exhibir su trabajo y ofrecer una amplia gama de servicios creativos, desde pintura, escritura, hasta danza y música, a través de perfiles personalizados que destacan su arte y habilidades. Los clientes tienen la oportunidad única de explorar una variedad de opciones artísticas, respaldadas por una plataforma segura que utiliza tecnología blockchain para garantizar transacciones seguras y la protección de datos. Además, Bragi ofrece características innovadoras como comunidades de artistas, seguidores y contrataciones de sus servicios, creando un ecosistema dinámico, seguro, creativo y generador de experiencias.
-
-![image](https://github.com/ybedoyab/Bragi/assets/72664432/4bc1ef00-d3d6-4fcc-b2d3-f77eef5b7a9d)
-
-
-## Problemática ❓
-Bragi aborda la falta de visibilidad que enfrentan los artistas en la ciudad de Medellín. A pesar de su talento y creatividad, muchos artistas luchan por encontrar oportunidades para mostrar su trabajo y llegar a un público más amplio. Esta falta de visibilidad limita su capacidad para generar ingresos y desarrollar sus carreras artísticas.
-
-## Implementación de ICP 💻
-Para la implementación de la plataforma Bragi en Medellín, se propone utilizar las tecnologías de Internet Computer Protocol (ICP), que ofrece características importantes para el desarrollo de la solución, como:  
-- Smart Contracts para transacciones seguras
-- Identidad digital descentralizada
-- Almacenamiento descentralizado de datos
-- Interoperabilidad con criptomonedas
-
-![Screenshot_2024-05-10_23_09_27 1](https://github.com/ybedoyab/Bragi/assets/72664432/de2d602f-16a6-433c-921e-b08cd6ff0348)
-
-
-Estas características de ICP permiten a Bragi ofrecer una plataforma segura, transparente y escalable, que ayuda a abordar los desafíos en la promoción del arte en Medellín.
-
-## Modelo de negocio 💼
-La base del modelo de negocio de Bragi se fundamenta en los siguientes aspectos clave:  
-- **Ingresos por comisiones de servicios**: Bragi generará ingresos mediante una comisión por cada transacción realizada entre artistas y clientes a través de la plataforma.  
-- **Suscripciones premium para artistas**: Bragi ofrecerá planes de suscripción premium para los artistas, que les permitirán acceder a funcionalidades adicionales y herramientas de promoción.  
-- **Publicidad y patrocinios**: Bragi explorará la inclusión de espacios publicitarios y oportunidades de patrocinio dentro de la plataforma.  
-
-## GitHub 🚀
-En nuestro repositorio de GitHub encontrarás la implementación del ICP en forma de backend o con un prototipo de frontend muy básico. La visualización de cómo funciona Bragi se encuentra en el siguiente enlace: [Visualización de Bragi en Figma](https://www.figma.com/proto/AmQPUAtlrZurNAtIAu6WhV/Bragi?node-id=19-2666&t=BnAcLXVRa0hBFj30-1&scaling=scale-down-width&page-id=19%3A2664&starting-point-node-id=19%3A2666&hotspot-hints=0&hide-ui=1)
-
-## Prueba Bragi 😸
-
-### **Dependencias necesarias:**
-1. **Instalar WSL:** Si estás usando Windows, debes instalar el WSL (Windows Subsystem for Linux) para que todo funcione correctamente, a través del siguiente comando en la consola:
-```bash
-wsl --install
-```
-
-2. **Instalar DFX:**
-```bash
-sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
-```
-
-3. **Instalar Podman:**
-```bash
-sudo apt-get update
-sudo apt-get -y install podman
-```
-
-4. **DFX**: Para evitar errores al hacer deploy con dfx, corre el siguiente comando:
-```bash
-sudo apt install build-essential clang  libssl-dev pkg-config libclang-dev
-```
-
-5. Finalmente, ejecuta el siguiente comando y abre una nueva terminal.
-```bash
-export PATH="/home/codespace/bin:$PATH"
-```
-
-### ¿Cómo clonar el repositorio?
-1. Para clonar el repositorio, deberás correr el siguiente comando en tu máquina local:
-```bash
-git clone https://github.com/ybedoyab/Bragi.git
-```
-
-2. Posteriormente, debes irte a la carpeta 'Bragi':
-```bash
-cd ./Bragi
-```
-
-3. Para que todo funcione correctamente, deberás ejecutar el siguiente comando:  
-```bash
-rm -rf node_modules
-```
-
-4.  Después, deberás correr el siguiente comando:
 ```bash
 npm install
+cp .env.example .env.local
+# Set QLOO_API_KEY (never commit). Prefer rotating any previously exposed key.
+# SAMPLE_DATA_MODE=false for live demos
+npm run dev
 ```
 
-5. Después, deberás inicializar el DFX con el siguiente comando:
-```bash
-dfx start --background
-```
+Open http://localhost:3000
 
-6. Finalmente, escribe este comando: 
-```bash
-dfx deploy
-```
+### Environment
 
-7. Se generarán varios links en el localhost para los canisters de front, back y internet_identity, dado que estamos usando una version de desarrollo requieres copiar el segundo link que se genera para internet_identity y compiarlo en el archivo del codigo ./Bragi/src/usuarios_frontend/src/components y modificar la línea 142 del componente Menu.jsx como se muestra en la imagen 
+| Variable | Scope | Notes |
+| --- | --- | --- |
+| `QLOO_API_KEY` | server | Hackathon key via `X-Api-Key` |
+| `QLOO_API_BASE_URL` | server | Default `https://hackathon.api.qloo.com` |
+| `SAMPLE_DATA_MODE` | server | `true` only for UI work; banner shown; never silent fallback |
 
-![image](https://github.com/ybedoyab/Bragi/assets/117226776/d5e213c7-9304-4521-b763-400853fecc07)
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run typecheck` | TypeScript |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest (fixtures; no live quota) |
+| `npm run qloo:smoke` | Live Search smoke |
+| `npm run qloo:e2e` | Live Profile A/B discovery |
+
+## Deploy (Vercel)
+
+1. Import `DOVRC/bragi-qloo` with **Root Directory** `.`
+2. Set server env: `QLOO_API_KEY`, `QLOO_API_BASE_URL`, `SAMPLE_DATA_MODE=false`
+3. Never use `NEXT_PUBLIC_` for the Qloo key
+
+Demo URL: _add after deploy_
+
+## License
+
+MIT — see [LICENSE](LICENSE). Brand logos in `public/brand/` are first-party Bragi assets used for this submission. Do not reuse third-party marketplace template imagery.
+
+## Docs
+
+- [AGENTS.md](AGENTS.md) — agent operating rules
+- [docs/STATUS.md](docs/STATUS.md) — checkpoint
+- [docs/QLOO_INTEGRATION.md](docs/QLOO_INTEGRATION.md) — verified API contracts
+- [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md) — Devpost readiness

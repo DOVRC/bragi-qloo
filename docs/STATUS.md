@@ -1,67 +1,40 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (Phase 2 — live Qloo validation)  
-**Active branch:** `feature/qloo-taste-agent`  
-**Baseline (pre-hackathon) SHA:** `29c39af7805833e87d215602ee769d654f9f0715` (`main`)  
-**Local path:** `C:\Users\Usuario\Documents\HACKATHONS\HACKATHON QLOO\Bragi`  
-**Working tree:** dirty (uncommitted) — **not pushed**
+**Last updated:** 2026-10-30 (Final product build)  
+**Active branch:** `feat/bragi-qloo-final-product`  
+**Target remote:** https://github.com/DOVRC/bragi-qloo  
+**Backup ref:** `backup/pre-final-product-d61353c`  
+**Local path:** `C:\Users\Usuario\Documents\HACKATHONS\HACKATHON QLOO\Bragi`
 
 ## How to resume
 
-1. Read [`../AGENTS.md`](../AGENTS.md).
-2. Read this file.
-3. Skim [`QLOO_INTEGRATION.md`](QLOO_INTEGRATION.md) (live findings).
-4. Remaining P0: LICENSE, authorize push/deploy, Devpost materials.
+1. Read [`../AGENTS.md`](../AGENTS.md)  
+2. Read this file  
+3. Work at **repository root** (Next.js app is no longer under `apps/taste-agent`)  
+4. Push only to `DOVRC/bragi-qloo`
 
-## Phase 2 outcome
+## Completed this session
 
-**Genuine end-to-end live discovery works** with `SAMPLE_DATA_MODE=false` and a configured `QLOO_API_KEY`.
+- Secret scan (working tree tracked sources): clean; `.env.local` gitignored  
+- Removed ICP/Azle/DFX legacy (`src/usuarios_*`, `dfx.json`, `.azle`, nested apps scaffold)  
+- Promoted Next.js Taste Agent to **repository root**  
+- Redesigned UX: header, hero, chip taste selector + Qloo search autocomplete, discovery workspace, evidence, expandable “why”, how-it-works, about, footer  
+- Added `GET /api/search`  
+- MIT `LICENSE` + English root README  
+- Quality: typecheck ✅ · test 22/22 ✅ · lint ✅ · build ✅  
 
-### Verified this session
+## Remaining
 
-| Check | Result |
-| --- | --- |
-| Env (redacted) | `QLOO_API_KEY` PRESENT · `SAMPLE_DATA_MODE=false` · hackathon base URL |
-| `npm run qloo:smoke` | OK — search returns entities |
-| `GET /api/health/qloo` | 200 · `ok:true` · `entityCount:1` |
-| `POST /api/discover` live | 200 · `mode:live` · resolved Radiohead + Studio Ghibli |
-| Live e2e Profile A | OK — Radiohead, Studio Ghibli, Jazz At Lincoln Center → Teatro/MAMM-style set |
-| Live e2e Profile B | OK — Reggaeton, Urban Fashion, Latin Dance → Metropolitano/Comuna 13 set |
-| Differentiation | **DIFFERENT_TOP_SET** (A ≠ B) |
-| `npm test` | **22/22** pass |
-| `npm run typecheck` / `lint` / `build` | Pass |
+1. Rotate previously exposed Qloo API key before production  
+2. Vercel deploy (root `.`) with server env `SAMPLE_DATA_MODE=false`  
+3. Devpost submission text + demo URL  
+4. Optional Playwright E2E (not executed this session)
 
-### Sanitized live examples (no secrets)
-
-- Search `Radiohead` → entity name `Radiohead` (id redacted `70CA…591C`)
-- Untyped search `Studio Ghibli` → `Studio Ghibli` (typed `movie`/`brand` filters were **noisy** — fixed via name-match + untyped fallback)
-- Insights artist from Radiohead → affinities e.g. Thom Yorke, Beck, Gorillaz, Mogwai
-- Profile B Insights → latin urban artists (e.g. Makano / Rakim Y Ken-Y class) + brand/place plan
-
-## Architecture notes (Phase 2 changes)
-
-- Name-aware entity resolution (`src/lib/resolve.ts`) — rejects bad typed hits
-- Conditional Insights plan (`planInsights`) from signal kinds
-- `/v2/tags` for genre/theme signals
-- Tag prioritization + score caps (Insights amenity tag explosion)
-- Insights TIMEOUT continues with partial evidence (no silent sample fallback)
-- Live mode prefers verified catalogue; demo only if verified empty
-- UI: live/sample banner, Profile A/B presets, taste evidence panel, honest empty state
-
-## Remaining P0 blockers
-
-1. **LICENSE** file still missing at repo root (ownership confirmation)
-2. **Push** of `feature/qloo-taste-agent` not authorized
-3. **Public deploy** (Vercel) not authorized — set server env without committing secrets
-4. Devpost English description + submission before deadline
-
-## Commands
+## Verify
 
 ```bash
-cd apps/taste-agent
+npm run typecheck && npm test && npm run lint && npm run build
 npm run qloo:check-env
 npm run qloo:smoke
-npm run qloo:e2e
-npm run typecheck && npm test && npm run build
 npm run dev
 ```

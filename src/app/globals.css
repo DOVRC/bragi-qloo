@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bragi-ink: #101828;
+  --bragi-slate: #1d2939;
+  --bragi-navy: #161a2a;
+  --bragi-mist: #c7ceeb;
+  --bragi-paper: #f0f2fa;
+  --bragi-cream: #fdf5eb;
+  --bragi-accent: #4b62c1;
+  --background: var(--bragi-cream);
+  --foreground: var(--bragi-navy);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+:focus-visible {
+  outline: 2px solid var(--bragi-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.hero-surface {
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 20%, rgba(199, 206, 235, 0.18), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 0%, rgba(75, 98, 193, 0.22), transparent 50%),
+    linear-gradient(165deg, #0c121c 0%, #1d2939 45%, #101828 100%);
+}
+
+.workspace-surface {
+  background:
+    linear-gradient(180deg, rgba(240, 242, 250, 0.65) 0%, rgba(253, 245, 235, 1) 28%);
+}
