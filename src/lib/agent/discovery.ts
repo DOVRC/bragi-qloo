@@ -2,6 +2,7 @@ import { CatalogueService } from "@/lib/catalogue/service";
 import { QlooService } from "@/lib/qloo/client";
 import { resolveSignalEntity } from "@/lib/resolve";
 import { parseDiscoverInput } from "@/lib/signals";
+import { buildDiscoveryTrace, sanitizeEntity } from "@/lib/agent/trace";
 import {
   QlooClientError,
   type AgentStep,
@@ -286,8 +287,8 @@ export class DiscoveryAgent {
         city: parsed.city,
         budgetCop: parsed.budgetCop,
         signals: parsed.signals,
-        resolvedEntities,
-        affinityEntities,
+        resolvedEntities: resolvedEntities.map(sanitizeEntity),
+        affinityEntities: affinityEntities.map(sanitizeEntity),
         affinityTags,
         evidence,
       };
@@ -328,13 +329,22 @@ export class DiscoveryAgent {
           "No defensible local matches for the current Qloo evidence and constraints. Try different signals, raise budget, or broaden tastes.",
         );
       } else {
+        const insightBacked = recommendations.filter((r) => r.qlooInsightsPoints > 0).length;
         setStep(
           steps,
           "rank",
           "done",
-          `Top: ${recommendations.map((r) => r.entry.name).join(" · ")}`,
+          `Top: ${recommendations.map((r) => r.entry.name).join(" · ")} · ${insightBacked}/${recommendations.length} Insights-backed`,
         );
       }
+
+      const trace = buildDiscoveryTrace({
+        mode,
+        profile,
+        recommendations,
+        steps,
+        warnings,
+      });
 
       return {
         ok: true,
@@ -343,6 +353,7 @@ export class DiscoveryAgent {
         recommendations,
         steps,
         warnings,
+        trace,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unexpected discovery failure";

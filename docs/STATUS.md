@@ -1,40 +1,36 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (Visual QA & UX polish)  
+**Last updated:** 2026-10-30 (Taste Journey + evidence-aware matching)  
 **Active branch:** `main`  
-**Baseline before polish:** `fa767d3c77d07efbdc4ac78a881b901d7736c3a6`  
+**Baseline before this task:** `7f1c2f6d9f3ad14a2f315387367143a6a52f677a`  
 **Branch tip:** verify with `git ls-remote origin refs/heads/main`  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
-**Local path:** `C:\Users\Usuario\Documents\HACKATHONS\HACKATHON QLOO\Bragi`
 
-## How to resume
+## Completed
 
-1. Read [`../AGENTS.md`](../AGENTS.md)  
-2. Read this file  
-3. Work at **repository root**  
-4. Push only to `DOVRC/bragi-qloo`
+- Guided **TasteJourney** (interests → Qloo connections → Medellín → why)  
+- Contribution-aware catalogue scoring + `evidenceStrength`  
+- `DiscoveryTrace` for affinity visualization / comparison  
+- Offline ablation (`npm run qloo:ablation`) + docs  
+- Tests: **25** · typecheck/lint/build gates  
 
-## Completed this session
+## Docs
 
-- Browser-driven visual QA vs Figma (see [`UI_QA_REPORT.md`](UI_QA_REPORT.md))  
-- Hero uses authorized brand illustration; consumer microcopy; sticky header  
-- Discovery journey: recommendations first; honest skeletons; autocomplete AbortController + keyboard  
-- Recommendation cards with category art headers; evidence/steps as disclosures  
-- Quality: typecheck ✅ · test 22/22 ✅ · lint ✅ · build ✅ · `npm audit --omit=dev` 0  
-- Screenshots under gitignored `qa-artifacts/`
+- [`GUIDED_DEMO.md`](GUIDED_DEMO.md)  
+- [`QLOO_VALUE_VALIDATION.md`](QLOO_VALUE_VALIDATION.md)  
+- [`UI_QA_REPORT.md`](UI_QA_REPORT.md)  
 
 ## Remaining
 
-1. Rotate previously exposed Qloo API key before production  
-2. Vercel deploy (root `.`) with `SAMPLE_DATA_MODE=false`  
-3. Devpost submission  
-4. Optional: add Playwright suite; venue photography only with licensed assets  
+1. Rotate exposed Qloo key + Vercel env  
+2. Optional Playwright E2E  
+3. Licensed venue photography only if available  
 
 ## Verify
 
 ```bash
 npm run typecheck && npm test && npm run lint && npm run build
-npm run qloo:check-env
-npm run qloo:smoke
+npm run qloo:ablation
+npm run qloo:check-env && npm run qloo:smoke
 npm run dev
 ```

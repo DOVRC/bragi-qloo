@@ -25,8 +25,15 @@ npm install --global @qloo/qloo-harness   # requires Node ≥ 22.19; harness ≥
 qloo setup --qloo
 ```
 
-Or set `QLOO_API_KEY` in `apps/taste-agent/.env.local` (gitignored).  
-Use `npm run qloo:check-env` to confirm presence without printing secrets.
+Or set `QLOO_API_KEY` in `.env.local` at repository root (gitignored).  
+Use `npm run qloo:check-env` to confirm presence without printing secrets.  
+Treat any previously screenshot-exposed key as compromised until rotated.
+
+## Client-visible discovery payload
+
+`POST /api/discover` success includes a sanitized `trace` (`DiscoveryTrace`):
+user signals, resolved Search entities, Insights affinities (excluding restated inputs),
+theme tags, evidence coverage counts, and recommendation ids — **not** raw Qloo payloads.
 
 ## Supported harness surfaces
 

@@ -135,3 +135,7 @@ Remaining vs Figma: no photographic artist portraits (intentionally avoided fabr
 ## 9. Final visual assessment
 
 The interface is **substantially more editorial and Figma-adjacent** than the baseline: artistic hero, consumer language, recommendation-first results, and judge-ready disclosures. Suitable to present to international hackathon judges for visual/UX quality, with the remaining blockers being ops (key rotation, hosting), not primary visual polish.
+
+## 10. Taste Journey follow-up (2026-10-30)
+
+Added guided steps + AffinityConnections visualization (live Insights affinities clickable → highlight places). Evidence strength badges on cards. See `GUIDED_DEMO.md` and `QLOO_VALUE_VALIDATION.md`. Hero/branding preserved (not a second redesign).

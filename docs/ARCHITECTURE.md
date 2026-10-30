@@ -11,11 +11,12 @@
 ## Boundaries
 
 ```
-UI components
+UI (TasteJourney guided steps)
   → /api/discover | /api/search | /api/health/qloo
       → DiscoveryAgent
           → QlooService (/search, /v2/tags, /v2/insights)
-          → CatalogueService (ranking + evidence threshold)
+          → CatalogueService (contribution-aware ranking)
+          → DiscoveryTrace (sanitized for client visualization)
 ```
 
 ## Services
@@ -24,8 +25,14 @@ UI components
 | --- | --- |
 | QlooService | Typed HTTP client; errors; smoke test |
 | resolveSignalEntity | Name-aware Search resolution |
-| DiscoveryAgent | Multi-step conditional tool orchestration |
-| CatalogueService | Filters + transparent scoring |
+| DiscoveryAgent | Multi-step conditional tool orchestration + trace |
+| CatalogueService | Filters + contribution scoring + evidenceStrength |
+| TasteJourney | Guided UI: interests → affinities → places → why |
+
+## Evidence classes
+
+`cross_domain_affinity` · `direct_taste_match` · `catalogue_supported` · `limited_evidence`  
+Derived from Search / Insights / user contribution points — see `docs/QLOO_VALUE_VALIDATION.md`.
 
 ## Deployment
 

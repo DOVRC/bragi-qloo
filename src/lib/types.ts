@@ -40,8 +40,15 @@ export interface QlooEntity {
   raw?: unknown;
 }
 
+export type EvidenceSource =
+  | "qloo_search"
+  | "qloo_tags"
+  | "qloo_insights"
+  | "user_signal"
+  | "catalogue";
+
 export interface TasteEvidence {
-  source: "qloo_search" | "qloo_insights" | "user_signal" | "catalogue";
+  source: EvidenceSource;
   entityId?: string;
   entityName?: string;
   detail: string;
@@ -85,12 +92,77 @@ export interface CatalogueEntry {
   actionHint: string;
 }
 
+/** How strongly Qloo-derived evidence supports a catalogue match. */
+export type EvidenceStrength =
+  | "cross_domain_affinity"
+  | "direct_taste_match"
+  | "catalogue_supported"
+  | "limited_evidence";
+
+export type ContributionKind =
+  | "qloo_search"
+  | "qloo_insights_entity"
+  | "qloo_insights_tag"
+  | "user_signal"
+  | "catalogue";
+
+export interface MatchContribution {
+  kind: ContributionKind;
+  label: string;
+  id?: string;
+  points: number;
+}
+
 export interface Recommendation {
   entry: CatalogueEntry;
   score: number;
+  /** Concise consumer-facing explanation */
   explanation: string;
+  /** Technical explanation for judges / advanced disclosure */
+  judgeExplanation: string;
   evidence: TasteEvidence[];
+  evidenceStrength: EvidenceStrength;
+  contributions: MatchContribution[];
+  /** Affinity entity/tag ids that contributed — used for UI highlighting */
+  matchedAffinityIds: string[];
+  /** Points from Insights entities + tags only */
+  qlooInsightsPoints: number;
+  /** Points from Search-resolved entities */
+  qlooSearchPoints: number;
+  /** Points from raw user strings (application-layer) */
+  userSignalPoints: number;
   refinementSuggestions: string[];
+}
+
+export type AffinityKind = "direct" | "inferred";
+
+export interface AffinityNode {
+  id: string;
+  name: string;
+  source: "qloo_search" | "qloo_tags" | "qloo_insights";
+  categoryHint?: string;
+  originatingSignals?: string[];
+  kind: AffinityKind;
+}
+
+export interface DiscoveryTrace {
+  requestId: string;
+  mode: "live" | "sample";
+  userSignals: string[];
+  resolvedEntities: AffinityNode[];
+  discoveredAffinities: AffinityNode[];
+  themeTags: string[];
+  matchedCatalogueIds: string[];
+  selectedRecommendationIds: string[];
+  evidenceCoverage: {
+    searchEntities: number;
+    insightEntities: number;
+    insightTags: number;
+    recommendationsWithInsights: number;
+    recommendationsDirectOnly: number;
+  };
+  steps: AgentStep[];
+  warnings: string[];
 }
 
 export type AgentStepStatus = "pending" | "running" | "done" | "error" | "skipped";
@@ -109,6 +181,7 @@ export interface DiscoverSuccess {
   recommendations: Recommendation[];
   steps: AgentStep[];
   warnings: string[];
+  trace: DiscoveryTrace;
 }
 
 export interface DiscoverFailure {
@@ -119,6 +192,7 @@ export interface DiscoverFailure {
     message: string;
   };
   steps: AgentStep[];
+  trace?: DiscoveryTrace;
 }
 
 export type DiscoverResponse = DiscoverSuccess | DiscoverFailure;

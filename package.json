@@ -13,9 +13,11 @@
     "qloo:smoke": "tsx scripts/qloo-smoke.ts",
     "qloo:check-env": "tsx scripts/check-env.ts",
     "qloo:probe": "tsx scripts/live-probe.ts",
-    "qloo:e2e": "tsx scripts/live-e2e.ts"
+    "qloo:e2e": "tsx scripts/live-e2e.ts",
+    "qloo:ablation": "tsx scripts/qloo-ablation.ts"
   },
   "dependencies": {
+    "lucide-react": "^1.65.0",
     "next": "15.5.28",
     "react": "19.3.1",
     "react-dom": "19.3.1"

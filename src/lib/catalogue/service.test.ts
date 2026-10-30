@@ -54,6 +54,48 @@ describe("CatalogueService.match", () => {
       ),
     ).toBe(true);
     expect(recs[0].explanation.length).toBeGreaterThan(20);
+    expect(recs[0].judgeExplanation.length).toBeGreaterThan(10);
+    expect(recs[0].evidenceStrength).toBeTruthy();
+    expect(recs[0].contributions.length).toBeGreaterThan(0);
+  });
+
+  it("attributes Insights separately from raw user-signal keyword overlap", () => {
+    const service = new CatalogueService();
+    const userOnly = service.match(
+      profile({
+        resolvedEntities: [],
+        affinityEntities: [],
+        affinityTags: [],
+      }),
+      3,
+      { mode: "user_only" },
+    );
+    const withInsights = service.match(profile(), 3, { mode: "full" });
+    // User-only can still match via hooks, but should be limited_evidence / weaker Insights points
+    for (const r of userOnly) {
+      expect(r.qlooInsightsPoints).toBe(0);
+      expect(r.evidenceStrength).toBe("limited_evidence");
+    }
+    expect(withInsights.some((r) => r.qlooSearchPoints > 0 || r.qlooInsightsPoints > 0)).toBe(
+      true,
+    );
+  });
+
+  it("does not label restated user signals as Insights affinities in contributions", () => {
+    const service = new CatalogueService();
+    const recs = service.match(
+      profile({
+        affinityEntities: [{ id: "dup", name: "Radiohead", type: "urn:entity:artist" }],
+      }),
+      3,
+    );
+    for (const r of recs) {
+      expect(
+        r.contributions.some(
+          (c) => c.kind === "qloo_insights_entity" && c.label === "Radiohead",
+        ),
+      ).toBe(false);
+    }
   });
 
   it("differentiates experimental vs urban profiles", () => {

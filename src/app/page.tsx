@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { HeroSection } from "@/components/HeroSection";
-import { DiscoveryWorkspace } from "@/components/DiscoveryWorkspace";
+import { TasteJourney } from "@/components/TasteJourney";
 import { HowItWorks } from "@/components/HowItWorks";
 import { AboutSection } from "@/components/AboutSection";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -12,7 +12,7 @@ export default function HomePage() {
       <div className="hero-surface relative -mt-[4.25rem] pt-[4.25rem]">
         <HeroSection />
       </div>
-      <DiscoveryWorkspace />
+      <TasteJourney />
       <HowItWorks />
       <AboutSection />
       <SiteFooter />
