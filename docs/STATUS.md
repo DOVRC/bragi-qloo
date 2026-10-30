@@ -1,7 +1,8 @@
 # Project status — resume checkpoint
 
 **Last updated:** 2026-10-30 (Final product build)  
-**Active branch:** `feat/bragi-qloo-final-product`  
+**Active branch:** `main` (published)  
+**Remote SHA:** `51fc229bd1cb35b84a2167135002d9aa1352c05c`  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
 **Backup ref:** `backup/pre-final-product-d61353c`  
 **Local path:** `C:\Users\Usuario\Documents\HACKATHONS\HACKATHON QLOO\Bragi`
