@@ -6,47 +6,48 @@ Deadline: **2026-10-30 11:45 PM EDT**
 
 - [x] Public repository URL — https://github.com/DOVRC/bragi-qloo
 - [x] Detectable open-source **LICENSE** file (MIT)
-- [ ] Externally hosted, publicly accessible demo (Vercel recommended)
-- [ ] English product description (what it does + why Qloo-powered)
-- [x] Setup instructions (clone, env, run, test) — `apps/taste-agent/README.md` + root README
-- [x] Testing instructions for judges — `npm test`, `npm run qloo:smoke`, `npm run qloo:e2e`
-- [x] Explanation of original Bragi vs hackathon Taste Agent changes — docs + README
-- [x] Evidence of real Qloo integration (redacted) — `docs/QLOO_INTEGRATION.md` + `docs/STATUS.md`
-- [x] Privacy/credential review locally — `.env*` gitignored; check-env redacts; no silent sample fallback
+- [x] Externally hosted demo — https://bragi-qloo.vercel.app (public; no auth wall)
+- [ ] Live Qloo on that URL (set **rotated** `QLOO_API_KEY` in Vercel Production, redeploy, confirm `/api/health/qloo`)
+- [ ] English product description on Devpost (what it does + why Qloo-powered)
+- [x] Setup instructions — root `README.md` + [DEPLOYMENT.md](DEPLOYMENT.md)
+- [x] Testing instructions — `npm test`, `npm run qloo:smoke`, `npm run qloo:e2e`, [GUIDED_DEMO.md](GUIDED_DEMO.md)
+- [x] Original Bragi vs Taste Agent — README + this table
+- [x] Evidence of real Qloo integration — [QLOO_INTEGRATION.md](QLOO_INTEGRATION.md)
+- [x] Privacy/credential review — `.env*` gitignored; no `NEXT_PUBLIC_` key; SSO off for demo
 - [ ] Devpost entry fields complete; Representative submits
 
 ## Strongly recommended
 
-- [ ] Screenshots of core journey (no secrets)
-- [ ] `docs/QLOO_INTEGRATION.md` linked from README
-- [ ] Live smoke test log note in STATUS (success only if real)
-- [ ] Responsive check mobile + desktop
+- [ ] Screenshots of Taste Journey (no secrets)
+- [x] `docs/QLOO_INTEGRATION.md` linked from README / docs
+- [ ] Live smoke note in STATUS after rotated key
+- [x] Responsive check — production homepage loads desktop; re-check mobile after key
 
 ## Optional
 
-- [ ] Demo video (official site: **not required**)
+- [ ] Demo video (not required)
 - [ ] Discord #api-help if quota issues
 
 ## Technical verification before submit
 
 ```bash
-cd apps/taste-agent
 npm ci
 npm run typecheck
 npm test
 npm run build
-npm run qloo:smoke   # only with valid key
+# production (after rotated key):
+curl -s https://bragi-qloo.vercel.app/api/health/qloo
+# expect ok:true — never SAMPLE_DATA_MODE=true
 ```
 
-## Deployment (recommended, needs authorization)
+## Deployment (done)
 
-1. Push branch to GitHub.
-2. Import `apps/taste-agent` as Vercel root (or monorepo root directory setting).
-3. Set `QLOO_API_KEY` and `QLOO_API_BASE_URL` in Vercel env (server).
-4. Confirm production URL loads and `/api/discover` works without leaking key.
-5. Paste URL into Devpost.
+1. Repo: `DOVRC/bragi-qloo` · root `.` · Node 22 · CI on GitHub Actions  
+2. Vercel: `daniel-o-s-projects1` / `bragi-qloo` · Git CD on `main`  
+3. Env names: `QLOO_API_KEY`, `QLOO_API_BASE_URL`, `SAMPLE_DATA_MODE=false`  
+4. Paste https://bragi-qloo.vercel.app into Devpost after live Qloo confirmed  
 
-## Original vs new (draft for description)
+## Original vs new
 
 | Original Bragi | Hackathon Taste Agent |
 | --- | --- |
@@ -57,7 +58,6 @@ npm run qloo:smoke   # only with valid key
 
 ## Credential hygiene
 
-- [ ] Key not in git history of submission branch
-- [ ] `.env*` gitignored
-- [ ] Rotate if previously shared in chat
-- [ ] Sample-data mode off in production demo
+- [x] `.env*` gitignored; `.vercel/` gitignored  
+- [ ] Rotate if previously shared/screenshot-exposed; set only via Vercel secure input  
+- [x] Sample-data mode off intended for production (`SAMPLE_DATA_MODE=false`)

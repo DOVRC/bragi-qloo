@@ -56,13 +56,28 @@ Open http://localhost:3000
 | `npm run qloo:smoke` | Live Search smoke |
 | `npm run qloo:e2e` | Live Profile A/B discovery |
 
-## Deploy (Vercel)
+## Live demo
 
-1. Import `DOVRC/bragi-qloo` with **Root Directory** `.`
-2. Set server env: `QLOO_API_KEY`, `QLOO_API_BASE_URL`, `SAMPLE_DATA_MODE=false`
-3. Never use `NEXT_PUBLIC_` for the Qloo key
+**Production:** https://bragi-qloo.vercel.app  
 
-Demo URL: _add after deploy_
+Status: site and CI/CD are live on Daniel’s Vercel project `bragi-qloo` (`daniel-o-s-projects1`), Git-connected to `DOVRC/bragi-qloo` / `main`. Production stores `QLOO_API_KEY` as a Vercel Secret — rotate at Qloo if a prior key was screenshot-exposed, then update the Secret. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## CI/CD
+
+| Stage | System |
+| --- | --- |
+| CI | GitHub Actions — [ci.yml](https://github.com/DOVRC/bragi-qloo/actions/workflows/ci.yml) (`typecheck`, `test`, `lint`, `build`, `audit`) |
+| CD | Vercel native Git integration (preview on PR; production on `main`) |
+
+## Deploy (operators)
+
+1. `vercel login` as Daniel → `vercel whoami` must be `dovrc`
+2. Link/create project `bragi-qloo` (root `.`, Node 22, `npm ci` / `npm run build`)
+3. `vercel git connect` → **only** `DOVRC/bragi-qloo`
+4. Production env names: `QLOO_API_KEY` (sensitive), `QLOO_API_BASE_URL`, `SAMPLE_DATA_MODE=false`
+5. Never use `NEXT_PUBLIC_` for the Qloo key
+
+Full guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · Demo script: [docs/GUIDED_DEMO.md](docs/GUIDED_DEMO.md)
 
 ## License
 

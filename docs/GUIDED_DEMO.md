@@ -4,8 +4,9 @@ For Devpost judges unfamiliar with the project.
 
 ## What to open
 
-1. Deployed URL or `npm run dev` → `http://localhost:3000`
+1. **Production:** https://bragi-qloo.vercel.app — or `npm run dev` → `http://localhost:3000`
 2. Scroll to **Taste journey** (or click **Find my matches** / **Discover**)
+3. Live Qloo steps need Production `QLOO_API_KEY` (rotated). Until then, UI loads but Explore returns a credential error — see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Walkthrough A — Art-house
 
