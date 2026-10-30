@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 /** Read-only connectivity check. Does not echo credentials. */
 export async function GET() {

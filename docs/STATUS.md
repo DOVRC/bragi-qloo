@@ -1,41 +1,59 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (Final product build)  
-**Active branch:** `main` (published)  
-**Remote SHA:** `51fc229bd1cb35b84a2167135002d9aa1352c05c`  
+**Last updated:** 2026-10-30 (Security hardening for Vercel)  
+**Active branch:** `main`  
+**Remote SHA:** _(set after push — verify with `git rev-parse origin/main`)_  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
-**Backup ref:** `backup/pre-final-product-d61353c`  
 **Local path:** `C:\Users\Usuario\Documents\HACKATHONS\HACKATHON QLOO\Bragi`
 
 ## How to resume
 
 1. Read [`../AGENTS.md`](../AGENTS.md)  
 2. Read this file  
-3. Work at **repository root** (Next.js app is no longer under `apps/taste-agent`)  
+3. Work at **repository root** (Next.js app)  
 4. Push only to `DOVRC/bragi-qloo`
 
-## Completed this session
+## Security hardening (this session)
 
-- Secret scan (working tree tracked sources): clean; `.env.local` gitignored  
-- Removed ICP/Azle/DFX legacy (`src/usuarios_*`, `dfx.json`, `.azle`, nested apps scaffold)  
-- Promoted Next.js Taste Agent to **repository root**  
-- Redesigned UX: header, hero, chip taste selector + Qloo search autocomplete, discovery workspace, evidence, expandable “why”, how-it-works, about, footer  
-- Added `GET /api/search`  
-- MIT `LICENSE` + English root README  
+- Upgraded `next` + `eslint-config-next` **15.1.0 → 15.5.28** (patched for CVE-2025-55182 / RSC advisories; latest 15.x stable)  
+- Upgraded `react` / `react-dom` → **19.3.1** (patched RSC line)  
+- Forced nested `postcss` → **8.5.32** via `overrides` (Next 15 still vendors 8.4.31; avoids forced Next 16)  
+- `npm audit --omit=dev` → **0 vulnerabilities**  
 - Quality: typecheck ✅ · test 22/22 ✅ · lint ✅ · build ✅  
+- Client static bundle secret scan: clean  
+- API `maxDuration`: discover 60s, search/health 30s; `vercel.json` framework `nextjs`
 
-## Remaining
+## Vercel production checklist
 
-1. Rotate previously exposed Qloo API key before production  
-2. Vercel deploy (root `.`) with server env `SAMPLE_DATA_MODE=false`  
-3. Devpost submission text + demo URL  
-4. Optional Playwright E2E (not executed this session)
+| Setting | Value |
+| --- | --- |
+| Framework | Next.js |
+| Root Directory | `.` (repository root) |
+| Production Branch | `main` |
+| Env (server) | `QLOO_API_KEY`, `QLOO_API_BASE_URL=https://hackathon.api.qloo.com` |
+| Env | `SAMPLE_DATA_MODE=false` |
+| Auth wall | none (public for judges) |
+| Secrets | never `NEXT_PUBLIC_*` for Qloo key |
+
+### Deploy steps
+
+1. **Rotate** any previously exposed Qloo API key, then set the new key only in Vercel Project → Settings → Environment Variables (Production).  
+2. Import `DOVRC/bragi-qloo` in Vercel; confirm Root Directory is `.` and Production Branch is `main`.  
+3. Set server env above; redeploy.  
+4. Smoke: open `/api/health/qloo`, run a discovery from `/`, confirm live (not sample) evidence.  
+5. Optional local: `npm run qloo:check-env && npm run qloo:smoke`
+
+## Remaining blockers
+
+1. **Rotate exposed Qloo key** before/with production deploy (do not commit keys).  
+2. **Vercel project create + env** (manual).  
+3. Devpost URL + write-up.  
+4. Dev-only `npm audit` still reports vitest/vite/esbuild/tinypool; production audit is clean. Upgrade vitest major separately if desired.
 
 ## Verify
 
 ```bash
+npm ci --legacy-peer-deps
 npm run typecheck && npm test && npm run lint && npm run build
-npm run qloo:check-env
-npm run qloo:smoke
-npm run dev
+npm audit --omit=dev
 ```
