@@ -1,4 +1,24 @@
-# Bragi 🎨📱
+# Bragi
+
+## Taste Agent (Qloo Agentic Hackathon 2026)
+
+The hackathon submission lives in **`apps/taste-agent/`** — a Next.js cultural discovery agent using Qloo Taste Intelligence for Medellín.
+
+- Instructions for agents: [`AGENTS.md`](AGENTS.md)
+- Resume checkpoint: [`docs/STATUS.md`](docs/STATUS.md)
+- App setup: [`apps/taste-agent/README.md`](apps/taste-agent/README.md)
+
+```bash
+cd apps/taste-agent
+cp .env.example .env.local   # add QLOO_API_KEY; never commit secrets
+npm install && npm run dev
+```
+
+Legacy ICP marketplace code under `src/` is preserved and **not required** for the Taste Agent demo.
+
+---
+
+# Bragi (legacy) 🎨📱
 
 ## Descripción
 Bragi es una innovadora plataforma web y app móvil que revoluciona la manera en que los artistas comparten su talento y los clientes descubren servicios artísticos en la ciudad de Medellín. Con Bragi, los artistas pueden exhibir su trabajo y ofrecer una amplia gama de servicios creativos, desde pintura, escritura, hasta danza y música, a través de perfiles personalizados que destacan su arte y habilidades. Los clientes tienen la oportunidad única de explorar una variedad de opciones artísticas, respaldadas por una plataforma segura que utiliza tecnología blockchain para garantizar transacciones seguras y la protección de datos. Además, Bragi ofrece características innovadoras como comunidades de artistas, seguidores y contrataciones de sus servicios, creando un ecosistema dinámico, seguro, creativo y generador de experiencias.

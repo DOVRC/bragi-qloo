@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "duration": 0.12,
+  "results": [
+    {
+      "entity_id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
+      "name": "Radiohead",
+      "type": "urn:entity:artist",
+      "popularity": 0.92,
+      "properties": {
+        "tags": ["alternative rock", "art rock", "experimental"]
+      }
+    },
+    {
+      "id": "FFFFFFFF-0000-1111-2222-333333333333",
+      "name": "Radiohead Tribute Ensemble",
+      "type": "urn:entity:artist",
+      "popularity": 0.1
+    }
+  ]
+}

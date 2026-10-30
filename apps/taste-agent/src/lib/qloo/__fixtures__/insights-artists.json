@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "duration": 0.2,
+  "results": {
+    "entities": [
+      {
+        "entity_id": "11111111-2222-3333-4444-555555555555",
+        "name": "Thom Yorke",
+        "type": "urn:entity:artist",
+        "affinity": 0.88,
+        "properties": {
+          "tags": [{ "name": "experimental" }, { "name": "electronic" }]
+        }
+      },
+      {
+        "id": "66666666-7777-8888-9999-000000000000",
+        "name": "Portishead",
+        "type": "urn:entity:artist",
+        "popularity": 0.7,
+        "properties": {
+          "tags": ["trip hop", "experimental jazz"]
+        }
+      }
+    ]
+  }
+}
