@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-30 (Security hardening for Vercel)  
 **Active branch:** `main`  
-**Remote SHA:** _(set after push — verify with `git rev-parse origin/main`)_  
+**Remote SHA:** `4ed90a819432b9fff9bfbb936508d1d9fdae6559`  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
 **Local path:** `C:\Users\Usuario\Documents\HACKATHONS\HACKATHON QLOO\Bragi`
 
