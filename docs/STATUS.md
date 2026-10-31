@@ -28,8 +28,16 @@ npm ci && npm run typecheck && npm test && npm run lint && npm run build
 npm audit --omit=dev && npm run qloo:ablation
 ```
 
+## PR
+
+https://github.com/DOVRC/bragi-qloo/pull/1 · tip `1df6186` · CI green · Vercel preview READY  
+
+Preview: https://bragi-qloo-jnh9ow50s-daniel-o-s-projects1.vercel.app/  
+(**No Preview `QLOO_API_KEY`** — Explore correctly errors; live Path A verified locally.)
+
 ## Remaining before merge
 
-1. Rotate Qloo API key → update Vercel Production Secret  
-2. PR CI green + preview Taste Journey QA  
-3. Merge via GitHub PR only  
+1. Rotate Qloo API key → update Vercel Production **and** Preview Secrets  
+2. Re-run Taste Journey steps 2–4 on preview with live key  
+3. Merge via GitHub PR only — **not merged** while key unrotated  
+
