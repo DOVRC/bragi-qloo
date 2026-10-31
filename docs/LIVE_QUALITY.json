@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-31T02:08:09.917Z",
-  "base": "http://127.0.0.1:3456",
+  "generatedAt": "2026-10-31T02:24:26.855Z",
+  "base": "https://bragi-qloo.vercel.app",
   "note": "Human review required for cultural sense; metrics are descriptive only.",
   "rows": [
     {
       "id": "alt-rock",
       "ok": true,
-      "ms": 3382,
+      "ms": 894,
       "mode": "live",
       "resolved": [
         "Radiohead",
@@ -25,38 +25,44 @@
           "kind": "creator",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 29.5,
           "qlooInsightsPoints": 20,
-          "qlooSearchPoints": 8
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 0
         },
         {
           "name": "Siempre Llueve Recs",
           "kind": "project",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 21.5,
           "qlooInsightsPoints": 12,
-          "qlooSearchPoints": 8
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 0
         },
         {
-          "name": "Intermediaciones",
-          "kind": "project",
+          "name": "Nómada",
+          "kind": "creator",
           "city": "Medellín",
           "path": "bragi_catalogue",
-          "qlooInsightsPoints": 8,
-          "qlooSearchPoints": 0
+          "score": 15.5,
+          "qlooInsightsPoints": 6,
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 0
         }
       ],
-      "creatorCount": 1,
-      "projectCount": 2,
+      "creatorCount": 2,
+      "projectCount": 1,
       "geoOk": true,
       "warnings": [
         "Creators intent — skipped Qloo-native place ranking so independent creators can surface via catalogue evidence.",
-        "Discovery wall time 1031ms (deadline 50000ms)."
+        "Discovery wall time 235ms (deadline 50000ms)."
       ]
     },
     {
       "id": "hip-hop",
       "ok": true,
-      "ms": 3990,
+      "ms": 2762,
       "mode": "live",
       "resolved": [
         "Hip Hop",
@@ -71,28 +77,34 @@
       ],
       "recommendations": [
         {
+          "name": "Alcolirykoz",
+          "kind": "creator",
+          "city": "Medellín",
+          "path": "bragi_catalogue",
+          "score": 26.5,
+          "qlooInsightsPoints": 9,
+          "qlooSearchPoints": 16,
+          "userSignalPoints": 0
+        },
+        {
+          "name": "Centro Cultural Moravia",
+          "kind": "project",
+          "city": "Medellín",
+          "path": "bragi_catalogue",
+          "score": 15.5,
+          "qlooInsightsPoints": 6,
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 0
+        },
+        {
           "name": "Ferales",
           "kind": "creator",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 13.5,
           "qlooInsightsPoints": 12,
-          "qlooSearchPoints": 0
-        },
-        {
-          "name": "Nómada",
-          "kind": "creator",
-          "city": "Medellín",
-          "path": "bragi_catalogue",
-          "qlooInsightsPoints": 12,
-          "qlooSearchPoints": 0
-        },
-        {
-          "name": "Siempre Llueve Recs",
-          "kind": "project",
-          "city": "Medellín",
-          "path": "bragi_catalogue",
-          "qlooInsightsPoints": 12,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         }
       ],
       "creatorCount": 2,
@@ -100,13 +112,13 @@
       "geoOk": true,
       "warnings": [
         "Creators intent — skipped Qloo-native place ranking so independent creators can surface via catalogue evidence.",
-        "Discovery wall time 3944ms (deadline 50000ms)."
+        "Discovery wall time 2459ms (deadline 50000ms)."
       ]
     },
     {
       "id": "experimental",
       "ok": true,
-      "ms": 15035,
+      "ms": 14454,
       "mode": "live",
       "resolved": [
         "Electronic and Experimental Music: Technology, Music, and Culture",
@@ -125,24 +137,30 @@
           "kind": "project",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 33.5,
           "qlooInsightsPoints": 14,
-          "qlooSearchPoints": 16
+          "qlooSearchPoints": 16,
+          "userSignalPoints": 2
+        },
+        {
+          "name": "tapelooplab",
+          "kind": "creator",
+          "city": "Medellín",
+          "path": "bragi_catalogue",
+          "score": 28.5,
+          "qlooInsightsPoints": 9,
+          "qlooSearchPoints": 16,
+          "userSignalPoints": 2
         },
         {
           "name": "Intermediaciones",
           "kind": "project",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 25.5,
           "qlooInsightsPoints": 14,
-          "qlooSearchPoints": 8
-        },
-        {
-          "name": "Ferales",
-          "kind": "creator",
-          "city": "Medellín",
-          "path": "bragi_catalogue",
-          "qlooInsightsPoints": 13,
-          "qlooSearchPoints": 8
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 2
         }
       ],
       "creatorCount": 1,
@@ -150,13 +168,13 @@
       "geoOk": true,
       "warnings": [
         "Creators intent — skipped Qloo-native place ranking so independent creators can surface via catalogue evidence.",
-        "Discovery wall time 14993ms (deadline 50000ms)."
+        "Discovery wall time 14326ms (deadline 50000ms)."
       ]
     },
     {
       "id": "visual",
       "ok": true,
-      "ms": 736,
+      "ms": 706,
       "mode": "live",
       "resolved": [
         "Studio Ghibli",
@@ -175,39 +193,45 @@
           "kind": "venue",
           "city": "Medellín",
           "path": "qloo_native",
+          "score": 0,
           "qlooInsightsPoints": 0,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         },
         {
           "name": "Museo de Arte Moderno de Medellín (MAMM)",
           "kind": "venue",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 28.5,
           "qlooInsightsPoints": 19,
-          "qlooSearchPoints": 8
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 0
         },
         {
-          "name": "Plaza Mayor — cultural & creative events",
+          "name": "Casa de la Música de la Universidad de Antioquia",
           "kind": "venue",
           "city": "Medellín",
           "path": "bragi_catalogue",
-          "qlooInsightsPoints": 11,
-          "qlooSearchPoints": 0
+          "score": 7.5,
+          "qlooInsightsPoints": 6,
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         }
       ],
       "creatorCount": 0,
       "projectCount": 0,
       "geoOk": true,
       "warnings": [
-        "Qloo-native Insights elapsed 196ms.",
+        "Qloo-native Insights elapsed 119ms.",
         "Qloo-native path ranked 1/2 indexed candidates (sorted by query.affinity when present).",
-        "Discovery wall time 693ms (deadline 50000ms)."
+        "Discovery wall time 348ms (deadline 50000ms)."
       ]
     },
     {
       "id": "indie-art",
       "ok": true,
-      "ms": 14529,
+      "ms": 7076,
       "mode": "live",
       "resolved": [
         "Indie Rock Fortune Cookie",
@@ -226,39 +250,45 @@
           "kind": "venue",
           "city": "Medellín",
           "path": "qloo_native",
+          "score": 0,
           "qlooInsightsPoints": 0,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         },
         {
           "name": "Intermediaciones",
           "kind": "project",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 15.5,
           "qlooInsightsPoints": 14,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         },
         {
           "name": "Siempre Llueve Recs",
           "kind": "project",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 12.5,
           "qlooInsightsPoints": 11,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         }
       ],
       "creatorCount": 0,
       "projectCount": 2,
       "geoOk": true,
       "warnings": [
-        "Qloo-native Insights elapsed 156ms.",
+        "Qloo-native Insights elapsed 82ms.",
         "Qloo-native path ranked 1/2 indexed candidates (sorted by query.affinity when present).",
-        "Discovery wall time 14486ms (deadline 50000ms)."
+        "Discovery wall time 6905ms (deadline 50000ms)."
       ]
     },
     {
       "id": "jazz",
       "ok": true,
-      "ms": 9428,
+      "ms": 9680,
       "mode": "live",
       "resolved": [
         "Jazz",
@@ -277,33 +307,39 @@
           "kind": "venue",
           "city": "Medellín",
           "path": "qloo_native",
+          "score": 0,
           "qlooInsightsPoints": 0,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
+        },
+        {
+          "name": "tapelooplab",
+          "kind": "creator",
+          "city": "Medellín",
+          "path": "bragi_catalogue",
+          "score": 21.5,
+          "qlooInsightsPoints": 12,
+          "qlooSearchPoints": 8,
+          "userSignalPoints": 0
         },
         {
           "name": "Siempre Llueve Recs",
           "kind": "project",
           "city": "Medellín",
           "path": "bragi_catalogue",
+          "score": 19.5,
           "qlooInsightsPoints": 18,
-          "qlooSearchPoints": 0
-        },
-        {
-          "name": "Casa Tres Patios",
-          "kind": "project",
-          "city": "Medellín",
-          "path": "bragi_catalogue",
-          "qlooInsightsPoints": 15,
-          "qlooSearchPoints": 0
+          "qlooSearchPoints": 0,
+          "userSignalPoints": 0
         }
       ],
-      "creatorCount": 0,
-      "projectCount": 2,
+      "creatorCount": 1,
+      "projectCount": 1,
       "geoOk": true,
       "warnings": [
-        "Qloo-native Insights elapsed 177ms.",
+        "Qloo-native Insights elapsed 89ms.",
         "Qloo-native path ranked 1/2 indexed candidates (sorted by query.affinity when present).",
-        "Discovery wall time 9386ms (deadline 50000ms)."
+        "Discovery wall time 9546ms (deadline 50000ms)."
       ]
     }
   ]
