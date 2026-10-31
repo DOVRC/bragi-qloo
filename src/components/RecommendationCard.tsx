@@ -54,7 +54,10 @@ export function RecommendationCard({
         <h3 className="font-display text-2xl leading-tight text-bragi-navy">{entry.name}</h3>
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-bragi-navy/55">
           <MapPin className="inline h-3.5 w-3.5" aria-hidden />
-          {entry.neighborhood}, {entry.city}
+          {entry.neighborhood &&
+          entry.neighborhood.toLowerCase() !== entry.city.toLowerCase()
+            ? `${entry.neighborhood}, ${entry.city}`
+            : entry.city}
           {entry.discipline && (
             <>
               {" "}
