@@ -542,7 +542,7 @@ export function TasteJourney() {
                     <div key={rec.entry.id}>
                       <button
                         type="button"
-                        className="mb-2 text-xs font-semibold text-bragi-accent hover:underline"
+                        className="mb-2 inline-flex min-h-11 items-center text-sm font-semibold text-bragi-accent hover:underline"
                         onClick={() => {
                           setSelectedRecId(rec.entry.id);
                           setStep(4);
