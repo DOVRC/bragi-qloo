@@ -9,10 +9,14 @@ export function RecommendationCard({
   recommendation,
   rank,
   highlighted = false,
+  onMoreLikeThis,
+  onNotMyStyle,
 }: {
   recommendation: Recommendation;
   rank: number;
   highlighted?: boolean;
+  onMoreLikeThis?: (recommendation: Recommendation) => void;
+  onNotMyStyle?: (recommendation: Recommendation) => void;
 }) {
   const [open, setOpen] = useState(rank === 0);
   const [advanced, setAdvanced] = useState(false);
@@ -162,6 +166,29 @@ export function RecommendationCard({
               <p className="break-words font-mono text-[11px] text-bragi-navy/55">
                 {recommendation.judgeExplanation}
               </p>
+            )}
+          </div>
+        )}
+
+        {(onMoreLikeThis || onNotMyStyle) && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {onMoreLikeThis && (
+              <button
+                type="button"
+                onClick={() => onMoreLikeThis(recommendation)}
+                className="min-h-10 rounded-full border border-bragi-accent/30 bg-bragi-accent/10 px-4 text-xs font-semibold text-bragi-navy transition duration-200 ease-out hover:border-bragi-accent/50"
+              >
+                More like this
+              </button>
+            )}
+            {onNotMyStyle && (
+              <button
+                type="button"
+                onClick={() => onNotMyStyle(recommendation)}
+                className="min-h-10 rounded-full border border-bragi-ink/15 bg-white px-4 text-xs font-semibold text-bragi-navy/70 transition duration-200 ease-out hover:border-bragi-ink/30"
+              >
+                Not my style
+              </button>
             )}
           </div>
         )}

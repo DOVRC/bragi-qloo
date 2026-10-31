@@ -34,6 +34,8 @@ export interface DiscoverRequest {
   categories?: CatalogueCategory[];
   /** Creators / places / surprise-me (mixed). Defaults to mixed. */
   intent?: DiscoveryIntent;
+  /** Catalogue entry ids to omit after feedback (Not my style). */
+  excludeEntryIds?: string[];
 }
 
 export interface QlooEntity {

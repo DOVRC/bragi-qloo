@@ -64,6 +64,7 @@ export class DiscoveryAgent {
     const mode = this.sampleDataMode ? "sample" : "live";
     const startedAt = Date.now();
     const intent: DiscoveryIntent = input.intent ?? "mixed";
+    const excludeEntryIds = new Set(input.excludeEntryIds ?? []);
     const remaining = () => DISCOVERY_DEADLINE_MS - (Date.now() - startedAt);
 
     try {
@@ -390,18 +391,22 @@ export class DiscoveryAgent {
           const native = await rankQlooIndexedCandidates({
             qloo: this.qloo,
             profile,
-            entries: this.catalogue.list({
-              city: profile.city,
-              budgetCop: profile.budgetCop,
-              includeDemonstration: false,
-              kinds: kindFilter,
-            }),
+            entries: this.catalogue
+              .list({
+                city: profile.city,
+                budgetCop: profile.budgetCop,
+                includeDemonstration: false,
+                kinds: kindFilter,
+              })
+              .filter((e) => !excludeEntryIds.has(e.id)),
             limit: 3,
           });
-          nativeRecs = native.recommendations.map((r) => ({
-            ...r,
-            qlooAggregateExplainability: native.aggregateExplainability,
-          }));
+          nativeRecs = native.recommendations
+            .filter((r) => !excludeEntryIds.has(r.entry.id))
+            .map((r) => ({
+              ...r,
+              qlooAggregateExplainability: native.aggregateExplainability,
+            }));
           warnings.push(...native.warnings);
           if (native.elapsedMs != null) {
             warnings.push(`Qloo-native Insights elapsed ${native.elapsedMs}ms.`);
@@ -435,13 +440,20 @@ export class DiscoveryAgent {
 
       // Path B — Bragi evidence-aware matching (includes creators without Qloo IDs).
       // Live mode never injects demonstration profiles into recommendations.
-      const catalogueRecs = this.catalogue.match(profile, 6, {
-        includeDemonstration: this.sampleDataMode,
-        kinds: kindFilter,
-      });
+      const catalogueRecs = this.catalogue
+        .match(profile, 8, {
+          includeDemonstration: this.sampleDataMode,
+          kinds: kindFilter,
+        })
+        .filter((r) => !excludeEntryIds.has(r.entry.id));
       if (catalogueRecs.length === 0 && !this.sampleDataMode) {
         warnings.push(
           "No verified catalogue entries met the evidence threshold for this intent — honest empty Path B (demonstration profiles were not injected).",
+        );
+      }
+      if (excludeEntryIds.size > 0) {
+        warnings.push(
+          `Excluded ${excludeEntryIds.size} catalogue id(s) from feedback (Not my style).`,
         );
       }
 

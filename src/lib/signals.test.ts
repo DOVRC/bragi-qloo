@@ -54,3 +54,20 @@ describe("classifySignal", () => {
     expect(s.inferredType).toBeUndefined();
   });
 });
+
+describe("validateDiscoverRequest excludeEntryIds", () => {
+  it("accepts bounded exclude ids for Not my style feedback", () => {
+    const r = validateDiscoverRequest({
+      query: "Radiohead",
+      signals: ["Radiohead"],
+      excludeEntryIds: ["teatro-pablo-tobon", "demo-atelier-norte"],
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.excludeEntryIds).toEqual([
+        "teatro-pablo-tobon",
+        "demo-atelier-norte",
+      ]);
+    }
+  });
+});

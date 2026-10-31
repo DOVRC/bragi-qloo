@@ -8,13 +8,20 @@ import {
   Network,
   SlidersHorizontal,
 } from "lucide-react";
-import type { DiscoverResponse, DiscoverSuccess, DiscoveryIntent } from "@/lib/types";
+import type {
+  DiscoverResponse,
+  DiscoverSuccess,
+  DiscoveryIntent,
+  Recommendation,
+} from "@/lib/types";
 import { buildDiscoverQuery, PRESET_A, PRESET_B } from "@/lib/presets";
 import { TasteSelector } from "./TasteSelector";
 import { AffinityConnections } from "./AffinityConnections";
 import { RecommendationCard } from "./RecommendationCard";
 import { TasteEvidencePanel } from "./TasteEvidencePanel";
 import { AgentSteps } from "./AgentSteps";
+import { TasteDna } from "./TasteDna";
+import { NativeAffinityCompare } from "./NativeAffinityCompare";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -51,6 +58,8 @@ export function TasteJourney() {
   const [clientError, setClientError] = useState<string | null>(null);
   const [activeAffinityId, setActiveAffinityId] = useState<string | null>(null);
   const [selectedRecId, setSelectedRecId] = useState<string | null>(null);
+  const [excludeEntryIds, setExcludeEntryIds] = useState<string[]>([]);
+  const [feedbackNote, setFeedbackNote] = useState<string | null>(null);
   const inFlight = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -71,15 +80,30 @@ export function TasteJourney() {
     };
   }, [result, previous]);
 
-  function runDiscovery() {
+  function runDiscovery(overrides?: {
+    signals?: string[];
+    intent?: DiscoveryIntent;
+    excludeEntryIds?: string[];
+    jumpToStep?: Step;
+    note?: string;
+  }) {
     setClientError(null);
-    if (selected.length === 0) {
+    const nextSignals = overrides?.signals ?? selected;
+    const nextIntent = overrides?.intent ?? intent;
+    const nextExclude = overrides?.excludeEntryIds ?? excludeEntryIds;
+    if (nextSignals.length === 0) {
       setClientError("Select at least one cultural interest to continue.");
       return;
     }
     if (pending || inFlight.current) return;
 
-    const query = buildDiscoverQuery(selected, "Medellín", budgetCop);
+    if (overrides?.signals) setSelected(nextSignals);
+    if (overrides?.intent) setIntent(nextIntent);
+    if (overrides?.excludeEntryIds) setExcludeEntryIds(nextExclude);
+    if (overrides?.note) setFeedbackNote(overrides.note);
+    else if (!overrides) setFeedbackNote(null);
+
+    const query = buildDiscoverQuery(nextSignals, "Medellín", budgetCop);
     inFlight.current = true;
     startTransition(async () => {
       try {
@@ -88,10 +112,11 @@ export function TasteJourney() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             query,
-            signals: selected,
+            signals: nextSignals,
             city: "Medellín",
             budgetCop,
-            intent,
+            intent: nextIntent,
+            excludeEntryIds: nextExclude.length ? nextExclude : undefined,
           }),
         });
         const data = (await res.json()) as DiscoverResponse;
@@ -104,7 +129,7 @@ export function TasteJourney() {
         setResult(data);
         setActiveAffinityId(null);
         setSelectedRecId(data.recommendations[0]?.entry.id ?? null);
-        setStep(2);
+        setStep(overrides?.jumpToStep ?? 2);
         requestAnimationFrame(() => {
           panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
@@ -113,6 +138,44 @@ export function TasteJourney() {
       } finally {
         inFlight.current = false;
       }
+    });
+  }
+
+  function handleMoreLikeThis(rec: Recommendation) {
+    const boost = moreLikeSignals(rec, selected);
+    runDiscovery({
+      signals: boost,
+      jumpToStep: 3,
+      note: `More like “${rec.entry.name}” — boosted overlapping Qloo/catalogue evidence into your interests.`,
+    });
+  }
+
+  function handleNotMyStyle(rec: Recommendation) {
+    const nextExclude = [...new Set([...excludeEntryIds, rec.entry.id])];
+    runDiscovery({
+      excludeEntryIds: nextExclude,
+      jumpToStep: 3,
+      note: `Excluded “${rec.entry.name}” from this session — re-ranked without inventing replacements.`,
+    });
+  }
+
+  function handleSurpriseAgain() {
+    if (!result) {
+      setIntent("mixed");
+      runDiscovery({ intent: "mixed" });
+      return;
+    }
+    const surprise = result.trace.discoveredAffinities[0]?.name;
+    const nextSignals = surprise
+      ? uniquePreserve([...selected.filter((s) => s.toLowerCase() !== surprise.toLowerCase()), surprise])
+      : selected;
+    runDiscovery({
+      signals: nextSignals,
+      intent: "mixed",
+      jumpToStep: 3,
+      note: surprise
+        ? `Surprise path — folded Insights affinity “${surprise}” into your interests and mixed ranking.`
+        : "Surprise path — mixed creators + places with your current interests.",
     });
   }
 
@@ -125,6 +188,8 @@ export function TasteJourney() {
     setSelectedRecId(null);
     setSelected([...PRESET_A]);
     setIntent("mixed");
+    setExcludeEntryIds([]);
+    setFeedbackNote(null);
   }
 
   const focusedRec = useMemo(() => {
@@ -242,7 +307,7 @@ export function TasteJourney() {
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={runDiscovery}
+                  onClick={() => runDiscovery()}
                   className="min-h-11 rounded-full bg-bragi-accent px-6 text-sm font-semibold text-white transition duration-200 ease-out hover:bg-bragi-accent/90 disabled:opacity-60"
                 >
                   {pending ? "Exploring connections…" : "Explore my connections"}
@@ -401,6 +466,12 @@ export function TasteJourney() {
                   </button>
                 </div>
 
+                {feedbackNote && (
+                  <p className="rounded-2xl border border-bragi-accent/25 bg-bragi-accent/5 px-4 py-3 text-sm text-bragi-navy/75">
+                    {feedbackNote}
+                  </p>
+                )}
+
                 {result.warnings.length > 0 && (
                   <ul className="space-y-1 border-l-2 border-bragi-ink/20 pl-4 text-sm text-bragi-navy/65">
                     {result.warnings.map((w) => (
@@ -408,6 +479,9 @@ export function TasteJourney() {
                     ))}
                   </ul>
                 )}
+
+                <TasteDna result={result} />
+                <NativeAffinityCompare recommendations={result.recommendations} />
 
                 {result.recommendations.length === 0 ? (
                   <div className="rounded-[1.5rem] border border-bragi-ink/10 bg-white p-6 text-sm text-bragi-navy/70">
@@ -435,12 +509,22 @@ export function TasteJourney() {
                         recommendation={rec}
                         rank={i}
                         highlighted={highlightedRecIds.has(rec.entry.id)}
+                        onMoreLikeThis={handleMoreLikeThis}
+                        onNotMyStyle={handleNotMyStyle}
                       />
                     </div>
                   ))
                 )}
 
                 <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={handleSurpriseAgain}
+                    className="min-h-11 rounded-full bg-bragi-navy px-5 text-sm font-semibold text-bragi-cream disabled:opacity-60"
+                  >
+                    Surprise me again
+                  </button>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
@@ -491,6 +575,36 @@ export function TasteJourney() {
       </div>
     </section>
   );
+}
+
+function moreLikeSignals(rec: Recommendation, current: string[]): string[] {
+  const boost: string[] = [];
+  for (const c of rec.contributions) {
+    if (
+      c.kind === "qloo_insights_entity" ||
+      c.kind === "qloo_insights_tag" ||
+      c.kind === "qloo_search" ||
+      c.kind === "qloo_explainability"
+    ) {
+      if (c.label && c.label.length > 1 && c.label.length < 60) boost.push(c.label);
+    }
+  }
+  for (const hook of rec.entry.culturalHooks.slice(0, 3)) {
+    if (hook.length > 2 && hook.length < 40) boost.push(hook);
+  }
+  return uniquePreserve([...current, ...boost]).slice(0, 8);
+}
+
+function uniquePreserve(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of values) {
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+  }
+  return out;
 }
 
 function Stepper({

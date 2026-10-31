@@ -165,6 +165,14 @@ export function validateDiscoverRequest(body: unknown): {
         ? "mixed"
         : undefined;
 
+  const excludeEntryIds = Array.isArray(b.excludeEntryIds)
+    ? b.excludeEntryIds
+        .filter((id): id is string => typeof id === "string")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0 && id.length < 120)
+        .slice(0, 20)
+    : undefined;
+
   return {
     ok: true,
     value: {
@@ -173,6 +181,7 @@ export function validateDiscoverRequest(body: unknown): {
       city,
       budgetCop,
       intent,
+      excludeEntryIds: excludeEntryIds?.length ? excludeEntryIds : undefined,
     },
   };
 }

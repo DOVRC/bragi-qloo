@@ -196,4 +196,14 @@ describe("matchmaking quality across cultural profiles", () => {
     );
     expect(artistOnlyBecauseResolved).toHaveLength(0);
   });
+
+  it("honours excludeEntryIds when merging after Not my style feedback", () => {
+    const profile = profileFromSignals(["Radiohead", "experimental jazz"]);
+    const pathB = catalogue.match(profile, 6, { includeDemonstration: false });
+    expect(pathB.length).toBeGreaterThan(0);
+    const excluded = pathB[0].entry.id;
+    const filtered = pathB.filter((r) => r.entry.id !== excluded);
+    const merged = mergeRankingPaths([], filtered, { limit: 3, intent: "mixed" });
+    expect(merged.every((r) => r.entry.id !== excluded)).toBe(true);
+  });
 });
