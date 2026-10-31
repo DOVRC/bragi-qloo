@@ -186,6 +186,8 @@ function scoreEntry(
 
     let tagPoints = 0;
     const TAG_POINTS_CAP = 18;
+    /** Same humanized leaf from multiple URN variants must score at most once. */
+    const scoredTagLeaves = new Set<string>();
     const fashionContext = profile.signals.some((s) =>
       /fashion|streetwear|brand|urban fashion/i.test(s.raw),
     );
@@ -195,6 +197,7 @@ function scoreEntry(
       const leafLower = leaf.toLowerCase();
       // Skip tags that are just the user's raw genre string restated
       if (signalNames.has(leafLower)) continue;
+      if (scoredTagLeaves.has(leafLower)) continue;
       // Decade-fashion / press noise often floods Insights payloads for music/film runs
       if (/\d{4}s\s+fashion/.test(leafLower) && !fashionContext) continue;
       if (/wall street journal|newspaper|magazine/.test(leafLower)) continue;
@@ -213,6 +216,7 @@ function scoreEntry(
           tagPoints += add;
           score += add;
           qlooInsightsPoints += add;
+          scoredTagLeaves.add(leafLower);
           matchedTokens.add(leaf);
           matchedAffinityIds.push(tag);
           if (contributions.filter((c) => c.kind === "qloo_insights_tag").length < 4) {
