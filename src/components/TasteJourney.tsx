@@ -519,7 +519,11 @@ export function TasteJourney() {
                   return bridge ? <TasteBridgePanel bridge={bridge} /> : null;
                 })()}
 
-                <WhatQlooChanged result={result} />
+                <WhatQlooChanged
+                  result={result}
+                  intent={intent}
+                  excludeEntryIds={excludeEntryIds}
+                />
 
                 <TasteDna result={result} />
                 <NativeAffinityCompare recommendations={result.recommendations} />

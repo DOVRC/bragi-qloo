@@ -1,8 +1,8 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (final competitive impact sprint)  
-**Active branch:** `feature/final-impact-sprint` → merge to `main`  
-**Tip:** see latest `git rev-parse HEAD` after push  
+**Last updated:** 2026-10-30 (evidence integrity — LIVE_QUALITY + Qloo delta)  
+**Active branch:** `main` (PR #2 merged; integrity follow-up PR if needed)  
+**Production SHA:** `39ae762` (pending integrity follow-up SHA after merge)  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
 
 ## Production
@@ -10,16 +10,13 @@
 | Item | Value |
 | --- | --- |
 | URL | https://bragi-qloo.vercel.app |
-| Prior tip before this sprint | `7151cbd` |
+| Merge | PR #1 + PR #2 on `main` |
 | `QLOO_API_KEY` | Secret on Preview + Production (server-side) |
 
-## This sprint deliverables
+## Evidence integrity
 
-1. Catalogue geo fix — removed Odio a Botero (Bogotá); audit in `docs/CATALOGUE_AUDIT.md`
-2. Added Ferales, Nómada, tapelooplab, Intermediaciones, Siempre Llueve Recs
-3. Taste→creator bridge + What Qloo changed
-4. Warning UX split + creator CTA polish
-5. Live quality probe `docs/LIVE_QUALITY.json`
+1. `docs/LIVE_QUALITY.json` regenerated against production — hip-hop → Alcolirykoz (stale pre-sort JSON replaced).  
+2. `computeQlooDelta` uses the same Path B constraints as discovery (intent kinds, city, budget, exclusions, `MIN_MATCH_SCORE`) and separates Qloo Path B evidence from native UI merge effects.
 
 ## Remaining (post-hackathon)
 

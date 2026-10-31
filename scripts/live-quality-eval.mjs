@@ -7,7 +7,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const base = process.env.BRAGI_EVAL_BASE || "http://127.0.0.1:3456";
+const base = process.env.BRAGI_EVAL_BASE || "https://bragi-qloo.vercel.app";
 
 const PROFILES = [
   { id: "alt-rock", signals: ["Radiohead", "alternative rock"], intent: "creators" },
@@ -52,8 +52,10 @@ async function runOne(profile) {
       kind: r.entry?.kind,
       city: r.entry?.city,
       path: r.rankingPath,
+      score: r.score,
       qlooInsightsPoints: r.qlooInsightsPoints,
       qlooSearchPoints: r.qlooSearchPoints,
+      userSignalPoints: r.userSignalPoints,
     })),
     creatorCount: recs.filter((r) => r.entry?.kind === "creator").length,
     projectCount: recs.filter((r) => r.entry?.kind === "project").length,

@@ -1,6 +1,6 @@
 # Devpost submission checklist
 
-Deadline: **2026-10-30 11:45 PM EDT**
+Deadline: **2026-10-30 11:45 PM EDT** (22:45 Colombia)
 
 ## Required
 
@@ -8,21 +8,21 @@ Deadline: **2026-10-30 11:45 PM EDT**
 - [x] Detectable open-source **LICENSE** file (MIT)
 - [x] Externally hosted demo — https://bragi-qloo.vercel.app (public; no auth wall)
 - [x] Live Qloo on that URL (`/api/health/qloo` ok; Search + Discover live; Taste Journey verified)
-- [ ] Merge `feature/qloo-native-intelligence` only after rotated Qloo key + preview QA ([QLOO_NATIVE_VALIDATION.md](QLOO_NATIVE_VALIDATION.md)) — includes intent-aware matchmaking + affinity highlight fixes
-- [ ] English product description on Devpost (what it does + why Qloo-powered) — draft in [DEVPOST.md](DEVPOST.md)
+- [x] PR #1 + PR #2 merged to `main` — production SHA `39ae762` (+ integrity follow-up if merged)
+- [x] English product description draft — [DEVPOST.md](DEVPOST.md)
 - [x] Setup instructions — root `README.md` + [DEPLOYMENT.md](DEPLOYMENT.md)
 - [x] Testing instructions — `npm test`, `npm run qloo:smoke`, `npm run qloo:e2e`, [GUIDED_DEMO.md](GUIDED_DEMO.md)
 - [x] Original Bragi vs Taste Agent — README + this table
-- [x] Evidence of real Qloo integration — [QLOO_INTEGRATION.md](QLOO_INTEGRATION.md)
+- [x] Evidence of real Qloo integration — [QLOO_INTEGRATION.md](QLOO_INTEGRATION.md) + Taste bridge / What Qloo changed
 - [x] Privacy/credential review — `.env*` gitignored; no `NEXT_PUBLIC_` key; SSO off for demo
 - [ ] Devpost entry fields complete; Representative submits
 
 ## Strongly recommended
 
-- [ ] Screenshots of Taste Journey (no secrets)
+- [x] Screenshots of Taste Journey (see `docs/screenshots/`, including bridge + What Qloo changed)
 - [x] `docs/QLOO_INTEGRATION.md` linked from README / docs
-- [ ] Live smoke note in STATUS after rotated key
-- [x] Responsive check — production homepage loads desktop; re-check mobile after key
+- [x] Live quality note — [LIVE_QUALITY.md](LIVE_QUALITY.md) regenerated on production
+- [x] Responsive check — production homepage loads desktop
 
 ## Optional
 
@@ -36,17 +36,17 @@ npm ci
 npm run typecheck
 npm test
 npm run build
-# production (after rotated key):
 curl -s https://bragi-qloo.vercel.app/api/health/qloo
 # expect ok:true — never SAMPLE_DATA_MODE=true
+# hip-hop smoke (creators intent) should lead with Alcolirykoz on current catalogue
 ```
 
 ## Deployment (done)
 
 1. Repo: `DOVRC/bragi-qloo` · root `.` · Node 22 · CI on GitHub Actions  
 2. Vercel: `daniel-o-s-projects1` / `bragi-qloo` · Git CD on `main`  
-3. Env names: `QLOO_API_KEY`, `QLOO_API_BASE_URL`, `SAMPLE_DATA_MODE=false`  
-4. Paste https://bragi-qloo.vercel.app into Devpost after live Qloo confirmed  
+3. Env: `QLOO_API_KEY` Secret on Preview + Production; `SAMPLE_DATA_MODE=false` on Production  
+4. Paste https://bragi-qloo.vercel.app into Devpost  
 
 ## Original vs new
 
@@ -60,5 +60,5 @@ curl -s https://bragi-qloo.vercel.app/api/health/qloo
 ## Credential hygiene
 
 - [x] `.env*` gitignored; `.vercel/` gitignored  
-- [ ] Rotate if previously shared/screenshot-exposed; set only via Vercel secure input  
+- [ ] Recommended: rotate temporary hackathon key after submission  
 - [x] Sample-data mode off intended for production (`SAMPLE_DATA_MODE=false`)

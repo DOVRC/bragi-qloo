@@ -2,6 +2,9 @@
 
 **Production:** https://bragi-qloo.vercel.app  
 **Repo:** https://github.com/DOVRC/bragi-qloo  
+**Production SHA (PR #2):** `39ae762` — live quality probe regenerated on that deploy (`docs/LIVE_QUALITY.json`).  
+
+**What Qloo changed** compares Path B under the same city / intent / exclusions / score floor — it does not invent lifts from mismatched selection rules.
 
 ## Elevator pitch
 
