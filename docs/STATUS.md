@@ -1,6 +1,6 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (delta completion — feedback, Taste DNA, Devpost)  
+**Last updated:** 2026-10-30 (prioritySignals feedback → Qloo resolve budget)  
 **Active branch:** `feature/qloo-native-intelligence`  
 **Tip:** see `git rev-parse HEAD` after push  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
@@ -14,7 +14,7 @@
 | 3 | Affinity → recommendation highlighting | **COMPLETE** |
 | 4 | Verified independent creators | **COMPLETE** |
 | 5 | Adaptive Qloo planning | **COMPLETE** |
-| 6 | More like this / Not my style / Surprise me | **COMPLETE** (this delta) |
+| 6 | More like this / Not my style / Surprise me | **COMPLETE** — `prioritySignals` ensures refinements enter the 5-signal Search budget; Surprise rotates affinities |
 | 7 | Taste DNA from real Qloo evidence | **COMPLETE** (this delta) |
 | 8 | Native affinity comparison | **COMPLETE** when ≥2 native affinities (optional UI) |
 | 9 | Reliable discovery under Vercel limits | **COMPLETE** (50s deadline) |

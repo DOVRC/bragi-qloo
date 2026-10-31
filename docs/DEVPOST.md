@@ -2,54 +2,59 @@
 
 **Public demo (production):** https://bragi-qloo.vercel.app  
 **Repository:** https://github.com/DOVRC/bragi-qloo  
-**PR (feature branch):** https://github.com/DOVRC/bragi-qloo/pull/1  
+**PR:** https://github.com/DOVRC/bragi-qloo/pull/1  
 
-Screenshots (no secrets): `docs/screenshots/`
+Screenshots: `docs/screenshots/` (no secrets).
 
 | File | Content |
 | --- | --- |
-| `00-production-hero.png` | Production landing hero |
-| `01-hero-local.png` | Interests + Creators / Places / Surprise me intent |
-| `02-taste-dna.png` | Taste DNA evidence panel (live Qloo) |
-| `03-feedback-rerank.png` | Catalogue match after Not my style re-rank |
+| `00-production-hero.png` | Production landing |
+| `01-interests-five.png` | Interests with 5 tastes + intent selector |
+| `02-connections-live.png` | Live Qloo affinities (Connections) |
+| `02-taste-dna.png` / `03-*.png` | Taste DNA + feedback re-rank |
+| `04-why-explainability.png` | Native candidate explainability (affinity vs popularity) |
 
 ## Paste-ready English description
 
-**Bragi Taste Agent** helps people discover Medellín creators and cultural spaces from the music, film, and culture they already love. You choose interests and an intent (Creators, Places, or Surprise me). Bragi resolves those signals with **Qloo Search, Tags, and Insights**, then ranks a curated local catalogue with dual-path evidence:
+**Bragi Taste Agent** helps people discover Medellín creators and cultural spaces from the music, film, and culture they already love.
 
-- **Qloo-native path** — verified Medellín place entity IDs scored with Insights `query.affinity` and candidate explainability (never popularity-as-affinity).
+You choose interests and an intent (**Creators**, **Places**, or **Surprise me**). Bragi resolves those signals with **Qloo Search, Tags, and Insights**, then ranks a curated local catalogue with dual-path evidence:
+
+- **Qloo-native path** — verified Medellín place entity IDs scored with Insights `query.affinity` and **candidate** explainability (never popularity-as-affinity; aggregate explainability kept separate).
 - **Bragi catalogue path** — independent creators and projects matched to Qloo affinities when they are not confidently indexed in Qloo.
 
-The Taste Journey shows connections, Taste DNA (evidence shape of the run), recommendations with More like this / Not my style / Surprise me again, and a Why step with inspectable provenance. Live mode never invents demonstration profiles when evidence is empty.
+The four-step Taste Journey shows Connections, **Taste DNA** (evidence shape of the run), recommendations with **More like this / Not my style / Surprise me again**, and a Why step with inspectable provenance.
+
+Feedback is not cosmetic: refinement signals are **prioritized inside a bounded five-signal Qloo Search budget** via `prioritySignals`, so More like this and Surprise me again can change what actually reaches Search/Tags/Insights. Surprise me again rotates unused Insights affinities instead of always repeating the first. Live mode never invents demonstration profiles when evidence is empty.
 
 ## Built with
 
-Next.js 15 · React 19 · Qloo Hackathon API (`hackathon.api.qloo.com`) · Vercel · TypeScript · Vitest
+Next.js 15 · React 19 · Qloo Hackathon API · Vercel · TypeScript · Vitest
 
-## How Qloo is used (honest)
+## How Qloo is used
 
 | Capability | Usage |
 | --- | --- |
-| Search | Resolve named tastes to entities |
-| Tags | Resolve genre/theme signals |
-| Insights | Affinity entities/tags + native `filter.results.entities` ranking |
-| Explainability | Per-candidate contributions; aggregate kept separate |
+| Search | Resolve up to 5 prioritized cultural signals |
+| Tags | Genre/theme lookups (bounded) |
+| Insights | Affinity expansion + native `filter.results.entities` ranking |
+| Explainability | Per-candidate contributions on Why cards |
 
 ## Demo script
 
-1. Open https://bragi-qloo.vercel.app (or the PR preview after Preview `QLOO_API_KEY` is set).
-2. Keep Art-house interests; choose **Surprise me**; Explore.
-3. Inspect Connections (live affinities), then Medellín matches — expect a native venue + creators when evidence supports it.
-4. Open Taste DNA; try **Not my style** on a card; confirm exclusion + re-rank.
-5. Open Why / evidence on a native card; note `query.affinity` vs popularity language.
+1. Open the public demo (or Preview after Preview `QLOO_API_KEY` is configured).
+2. Select 5+ interests if desired; choose **Surprise me**; Explore.
+3. Inspect Connections (live affinities) → Medellín matches → Taste DNA.
+4. Open Why on a **Ranked by Qloo Insights** card; note affinity vs popularity language.
+5. Try **Not my style**, then **More like this** / **Surprise me again** and confirm the resolve warning mentions prioritized feedback when >5 signals.
 
-## Known limitations (do not overclaim)
+## Known limitations
 
-- Preview currently has no `QLOO_API_KEY` (Production-only Secret) — live Explore fails honestly on preview until Preview Secret is added.
-- Local/production credential still appears `hack_`-prefixed until Daniel rotates — treat as compromised for merge.
-- Native affinity comparison UI appears only when ≥2 native candidates return affinity in one run.
-- Event tickets and live calendars are not booked; public URLs are pointers only.
+- Preview historically lacked `QLOO_API_KEY` (Production-only) until rotated key is added to Preview.
+- Treat any previously screenshot-exposed `hack_` key as compromised until rotation is confirmed.
+- Native affinity comparison UI appears only when ≥2 native candidates return affinity.
+- Tickets/calendars are not booked; public URLs are pointers only.
 
-## Merge / production gate
+## Release gate
 
-Do **not** merge PR #1 until: rotated Qloo key in Production **and** Preview, CI green, preview Taste Journey live QA, no secret leakage.
+Do **not** merge until: rotated Qloo key in Production **and** Preview, CI green, Preview live Taste Journey QA, no secret leakage.

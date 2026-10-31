@@ -2,7 +2,12 @@ import { CatalogueService } from "@/lib/catalogue/service";
 import { QlooService } from "@/lib/qloo/client";
 import { mergeRankingPaths, rankQlooIndexedCandidates } from "@/lib/qloo/nativeRanking";
 import { resolveSignalEntity } from "@/lib/resolve";
-import { parseDiscoverInput } from "@/lib/signals";
+import {
+  MAX_RESOLVE_SIGNALS,
+  MAX_TAG_SIGNALS,
+  parseDiscoverInput,
+  selectSignalsForResolution,
+} from "@/lib/signals";
 import { buildDiscoveryTrace, sanitizeEntity } from "@/lib/agent/trace";
 import {
   QlooClientError,
@@ -134,7 +139,18 @@ export class DiscoveryAgent {
         }
 
         setStep(steps, "resolve", "running");
-        const resolveSignals = parsed.signals.slice(0, 5);
+        const resolveSignals = selectSignalsForResolution(parsed.signals, {
+          priorityRaws: input.prioritySignals,
+          limit: MAX_RESOLVE_SIGNALS,
+        });
+        if (parsed.signals.length > resolveSignals.length) {
+          warnings.push(
+            `Resolve budget ${MAX_RESOLVE_SIGNALS}/${parsed.signals.length} signals` +
+              (input.prioritySignals?.length
+                ? ` — prioritized feedback: ${input.prioritySignals.slice(0, 3).join(", ")}.`
+                : " (earlier interests truncated; send prioritySignals for feedback refinements)."),
+          );
+        }
         // Bounded parallelism (chunks of 2) + per-call timeout under the discovery deadline.
         for (let i = 0; i < resolveSignals.length; i += 2) {
           if (remaining() < SEARCH_TIMEOUT_MS + 2_000) {
@@ -187,16 +203,19 @@ export class DiscoveryAgent {
           steps,
           "resolve",
           "done",
-          `Resolved ${resolvedEntities.length}/${parsed.signals.length}: ${resolvedEntities.map((e) => e.name).join(", ") || "none"}`,
+          `Resolved ${resolvedEntities.length}/${resolveSignals.length} (of ${parsed.signals.length} selected): ${resolvedEntities.map((e) => e.name).join(", ") || "none"}`,
         );
 
-        // Genre/theme tag lookup — only when genre signals present
-        const genreSignals = parsed.signals.filter((s) => s.kind === "genre_or_theme");
+        // Genre/theme tag lookup — only when genre signals present (same priority budget).
+        const genreSignals = selectSignalsForResolution(
+          parsed.signals.filter((s) => s.kind === "genre_or_theme"),
+          { priorityRaws: input.prioritySignals, limit: MAX_TAG_SIGNALS },
+        );
         if (genreSignals.length === 0) {
           setStep(steps, "tags", "skipped", "No genre/theme signals to resolve");
         } else {
           setStep(steps, "tags", "running");
-          for (const signal of genreSignals.slice(0, 3)) {
+          for (const signal of genreSignals) {
             if (remaining() < TAGS_TIMEOUT_MS + 2_000) {
               warnings.push("Discovery time budget low — skipped remaining Tags lookups.");
               break;

@@ -22,6 +22,11 @@ import { TasteEvidencePanel } from "./TasteEvidencePanel";
 import { AgentSteps } from "./AgentSteps";
 import { TasteDna } from "./TasteDna";
 import { NativeAffinityCompare } from "./NativeAffinityCompare";
+import {
+  moreLikeSignals,
+  pickNextSurpriseAffinity,
+  uniquePreserve,
+} from "@/lib/tasteFeedback";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -60,6 +65,8 @@ export function TasteJourney() {
   const [selectedRecId, setSelectedRecId] = useState<string | null>(null);
   const [excludeEntryIds, setExcludeEntryIds] = useState<string[]>([]);
   const [feedbackNote, setFeedbackNote] = useState<string | null>(null);
+  const [surpriseIndex, setSurpriseIndex] = useState(0);
+  const [usedSurpriseNames, setUsedSurpriseNames] = useState<string[]>([]);
   const inFlight = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +91,7 @@ export function TasteJourney() {
     signals?: string[];
     intent?: DiscoveryIntent;
     excludeEntryIds?: string[];
+    prioritySignals?: string[];
     jumpToStep?: Step;
     note?: string;
   }) {
@@ -91,6 +99,7 @@ export function TasteJourney() {
     const nextSignals = overrides?.signals ?? selected;
     const nextIntent = overrides?.intent ?? intent;
     const nextExclude = overrides?.excludeEntryIds ?? excludeEntryIds;
+    const nextPriority = overrides?.prioritySignals;
     if (nextSignals.length === 0) {
       setClientError("Select at least one cultural interest to continue.");
       return;
@@ -117,6 +126,7 @@ export function TasteJourney() {
             budgetCop,
             intent: nextIntent,
             excludeEntryIds: nextExclude.length ? nextExclude : undefined,
+            prioritySignals: nextPriority?.length ? nextPriority : undefined,
           }),
         });
         const data = (await res.json()) as DiscoverResponse;
@@ -142,11 +152,12 @@ export function TasteJourney() {
   }
 
   function handleMoreLikeThis(rec: Recommendation) {
-    const boost = moreLikeSignals(rec, selected);
+    const { signals: next, priority } = moreLikeSignals(rec, selected);
     runDiscovery({
-      signals: boost,
+      signals: next,
+      prioritySignals: priority,
       jumpToStep: 3,
-      note: `More like “${rec.entry.name}” — boosted overlapping Qloo/catalogue evidence into your interests.`,
+      note: `More like “${rec.entry.name}” — prioritized ${priority.slice(0, 3).join(", ") || "related evidence"} for Qloo Search/Insights within the resolve budget.`,
     });
   }
 
@@ -165,16 +176,24 @@ export function TasteJourney() {
       runDiscovery({ intent: "mixed" });
       return;
     }
-    const surprise = result.trace.discoveredAffinities[0]?.name;
+    const affinities = result.trace.discoveredAffinities;
+    const surprise = pickNextSurpriseAffinity(affinities, usedSurpriseNames, surpriseIndex);
+    if (surprise) {
+      setSurpriseIndex((i) => i + 1);
+      setUsedSurpriseNames((prev) =>
+        uniquePreserve([...prev, surprise.name]).slice(-12),
+      );
+    }
     const nextSignals = surprise
-      ? uniquePreserve([...selected.filter((s) => s.toLowerCase() !== surprise.toLowerCase()), surprise])
+      ? uniquePreserve([surprise.name, ...selected])
       : selected;
     runDiscovery({
       signals: nextSignals,
+      prioritySignals: surprise ? [surprise.name] : undefined,
       intent: "mixed",
       jumpToStep: 3,
       note: surprise
-        ? `Surprise path — folded Insights affinity “${surprise}” into your interests and mixed ranking.`
+        ? `Surprise path — prioritized Insights affinity “${surprise.name}” for Qloo resolution (rotated, not always the first).`
         : "Surprise path — mixed creators + places with your current interests.",
     });
   }
@@ -190,6 +209,8 @@ export function TasteJourney() {
     setIntent("mixed");
     setExcludeEntryIds([]);
     setFeedbackNote(null);
+    setSurpriseIndex(0);
+    setUsedSurpriseNames([]);
   }
 
   const focusedRec = useMemo(() => {
@@ -575,36 +596,6 @@ export function TasteJourney() {
       </div>
     </section>
   );
-}
-
-function moreLikeSignals(rec: Recommendation, current: string[]): string[] {
-  const boost: string[] = [];
-  for (const c of rec.contributions) {
-    if (
-      c.kind === "qloo_insights_entity" ||
-      c.kind === "qloo_insights_tag" ||
-      c.kind === "qloo_search" ||
-      c.kind === "qloo_explainability"
-    ) {
-      if (c.label && c.label.length > 1 && c.label.length < 60) boost.push(c.label);
-    }
-  }
-  for (const hook of rec.entry.culturalHooks.slice(0, 3)) {
-    if (hook.length > 2 && hook.length < 40) boost.push(hook);
-  }
-  return uniquePreserve([...current, ...boost]).slice(0, 8);
-}
-
-function uniquePreserve(values: string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const v of values) {
-    const key = v.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(v);
-  }
-  return out;
 }
 
 function Stepper({

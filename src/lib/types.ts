@@ -36,6 +36,11 @@ export interface DiscoverRequest {
   intent?: DiscoveryIntent;
   /** Catalogue entry ids to omit after feedback (Not my style). */
   excludeEntryIds?: string[];
+  /**
+   * Signals that must be preferred when the resolve budget is capped (e.g. More like this /
+   * Surprise me again). Order in `signals` alone is not enough if older interests fill the cap.
+   */
+  prioritySignals?: string[];
 }
 
 export interface QlooEntity {

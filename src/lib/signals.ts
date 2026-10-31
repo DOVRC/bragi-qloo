@@ -6,6 +6,11 @@ import type {
   QlooEntityType,
 } from "@/lib/types";
 
+/** Max signals resolved via Qloo Search per discovery run (request budget). */
+export const MAX_RESOLVE_SIGNALS = 5;
+/** Max genre/theme tag lookups per discovery run. */
+export const MAX_TAG_SIGNALS = 3;
+
 const ENTITY_HINTS: Array<{ pattern: RegExp; type: QlooEntityType }> = [
   {
     pattern: /\b(radiohead|beatles|bjork|miles davis|coltrane|j balvin|bad bunny|shakira)\b/i,
@@ -173,6 +178,14 @@ export function validateDiscoverRequest(body: unknown): {
         .slice(0, 20)
     : undefined;
 
+  const prioritySignals = Array.isArray(b.prioritySignals)
+    ? b.prioritySignals
+        .filter((s): s is string => typeof s === "string")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s.length < 80)
+        .slice(0, MAX_RESOLVE_SIGNALS)
+    : undefined;
+
   return {
     ok: true,
     value: {
@@ -182,6 +195,46 @@ export function validateDiscoverRequest(body: unknown): {
       budgetCop,
       intent,
       excludeEntryIds: excludeEntryIds?.length ? excludeEntryIds : undefined,
+      prioritySignals: prioritySignals?.length ? prioritySignals : undefined,
     },
   };
+}
+
+/**
+ * Prefer explicitly chosen refinement signals within the Search/Tags budget.
+ * Does not invent signals — only reorders / truncates the provided list.
+ */
+export function selectSignalsForResolution(
+  signals: CulturalSignal[],
+  options: { priorityRaws?: string[]; limit?: number } = {},
+): CulturalSignal[] {
+  const limit = options.limit ?? MAX_RESOLVE_SIGNALS;
+  if (signals.length <= limit && (!options.priorityRaws || options.priorityRaws.length === 0)) {
+    return signals;
+  }
+
+  const priorityKeys = [
+    ...new Set((options.priorityRaws ?? []).map((s) => s.toLowerCase().trim()).filter(Boolean)),
+  ];
+  const byKey = new Map(signals.map((s) => [s.raw.toLowerCase(), s]));
+  const out: CulturalSignal[] = [];
+  const seen = new Set<string>();
+
+  for (const key of priorityKeys) {
+    const hit = byKey.get(key);
+    if (!hit || seen.has(key)) continue;
+    seen.add(key);
+    out.push(hit);
+    if (out.length >= limit) return out;
+  }
+
+  for (const signal of signals) {
+    const key = signal.raw.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(signal);
+    if (out.length >= limit) break;
+  }
+
+  return out;
 }
