@@ -15,6 +15,8 @@ export interface SearchParams {
   query: string;
   types?: QlooEntityType[];
   take?: number;
+  /** Optional per-call timeout override (ms) */
+  timeoutMs?: number;
 }
 
 export interface InsightsParams {
@@ -23,6 +25,12 @@ export interface InsightsParams {
   signalTags?: string[];
   locationQuery?: string;
   take?: number;
+  /** When true, request query.explainability metadata */
+  explainability?: boolean;
+  /** Candidate entity IDs for affinity evaluation (filter.results.entities) */
+  resultEntityIds?: string[];
+  /** Optional per-call timeout override (ms) */
+  timeoutMs?: number;
 }
 
 export class QlooService {
@@ -30,6 +38,8 @@ export class QlooService {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
+  /** Instance-scoped GET memoization — dedupes identical Qloo paths within one agent run. */
+  private readonly inFlight = new Map<string, Promise<unknown>>();
 
   constructor(options: QlooClientOptions = {}) {
     this.apiKey = options.apiKey ?? process.env.QLOO_API_KEY;
@@ -51,7 +61,7 @@ export class QlooService {
     if (params.types?.length) qs.set("types", params.types.join(","));
     if (params.take) qs.set("take", String(params.take));
 
-    const payload = await this.request(`/search?${qs.toString()}`);
+    const payload = await this.requestCached(`/search?${qs.toString()}`, params.timeoutMs);
     return normalizeQlooEntities(payload);
   }
 
@@ -71,9 +81,15 @@ export class QlooService {
     if (params.locationQuery) {
       qs.set("filter.location.query", params.locationQuery);
     }
+    if (params.resultEntityIds?.length) {
+      qs.set("filter.results.entities", params.resultEntityIds.join(","));
+    }
+    if (params.explainability) {
+      qs.set("feature.explainability", "true");
+    }
     if (params.take) qs.set("take", String(params.take));
 
-    const raw = await this.request(`/v2/insights?${qs.toString()}`);
+    const raw = await this.requestCached(`/v2/insights?${qs.toString()}`, params.timeoutMs);
     return {
       entities: normalizeQlooEntities(raw),
       tags: extractTagNames(raw),
@@ -82,14 +98,30 @@ export class QlooService {
   }
 
   /** Search Qloo tags (for genre/theme signals). */
-  async searchTags(query: string, take = 5): Promise<Array<{ id: string; name: string }>> {
+  async searchTags(
+    query: string,
+    take = 5,
+    options: { timeoutMs?: number } = {},
+  ): Promise<Array<{ id: string; name: string }>> {
     const qs = new URLSearchParams();
     qs.set("filter.query", query);
     qs.set("take", String(take));
     qs.set("feature.typo_tolerance", "true");
 
-    const raw = await this.request(`/v2/tags?${qs.toString()}`);
+    const raw = await this.requestCached(`/v2/tags?${qs.toString()}`, options.timeoutMs);
     return normalizeTags(raw);
+  }
+
+  private requestCached(pathWithQuery: string, timeoutMs?: number): Promise<unknown> {
+    const key = pathWithQuery;
+    const existing = this.inFlight.get(key);
+    if (existing) return existing;
+    const pending = this.request(pathWithQuery, timeoutMs).catch((err) => {
+      this.inFlight.delete(key);
+      throw err;
+    });
+    this.inFlight.set(key, pending);
+    return pending;
   }
 
   /** Minimal connectivity check — one small search. */
@@ -113,7 +145,7 @@ export class QlooService {
     }
   }
 
-  private async request(pathWithQuery: string): Promise<unknown> {
+  private async request(pathWithQuery: string, timeoutMs?: number): Promise<unknown> {
     if (!this.apiKey?.trim()) {
       throw new QlooClientError(
         "QLOO_API_KEY is not configured. Set it in .env.local or run `qloo setup --qloo`.",
@@ -122,7 +154,8 @@ export class QlooService {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const budget = timeoutMs ?? this.timeoutMs;
+    const timer = setTimeout(() => controller.abort(), budget);
 
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${pathWithQuery}`, {

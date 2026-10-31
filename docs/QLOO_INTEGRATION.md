@@ -92,13 +92,14 @@ Entities include names + popularity; tags nest under properties (`name` + `urn:t
 
 ## Bragi usage pattern (live)
 
-1. Parse signals → `named_entity` vs `genre_or_theme`.
-2. Resolve via Search with name-match + typed→untyped fallback (`resolve.ts`).
+1. Parse signals → `named_entity` vs `genre_or_theme` (unknown named entities stay untyped — no blind artist default).
+2. Resolve via Search with name-match + typed→untyped fallback (`resolve.ts`), bounded parallelism under a **50s** discovery deadline.
 3. Resolve genre tags via `/v2/tags` when needed.
-4. **Conditional** Insights plan (`planInsights`) — not a fixed always-on triple.
+4. **Adaptive** Insights plan (`planInsights`) from resolved Qloo types + signal cues — not “any resolved ⇒ artist”.
 5. Prioritize/caps tags (amenity noise from place Insights).
-6. Match Medellín catalogue (application layer) with evidence threshold; prefer verified entries in live mode.
-7. Never silent-sample on Qloo failure; Insights TIMEOUT continues with partial Search evidence when available.
+6. Dual-path rank: Path A native affinity for indexed places; Path B catalogue evidence (creators/projects). Merge is **intent-aware** (`creators` | `places` | `mixed`) without equating score scales.
+7. Live mode never injects demonstration profiles; Insights TIMEOUT continues with partial Search evidence when available.
+8. `POST /api/discover` accepts optional `intent` for matchmaking slot allocation.
 
 ## Live verification status
 
@@ -116,8 +117,12 @@ Entities include names + popularity; tags nest under properties (`name` + `urn:t
 - Medellín place Insights ≠ local independent artist inventory.
 - Typed Search filters can degrade precision for some names (Ghibli).
 - Insights latency/timeouts occur; client timeout is 45s; agent continues with partial evidence.
-- Catalogue matching is application-derived overlap against Qloo names/tags — not a Qloo-native ranking of our venues.
+- Catalogue matching (Path B) is application-derived overlap against Qloo names/tags.
+- Path A (verified Medellín Qloo place IDs only) uses Insights `filter.results.entities` + `feature.explainability`.
+- Contextual ranking field is **`entity.query.affinity`** — never `popularity` (they diverge on live responses).
+- Candidate explainability ≠ top-level aggregate explainability — see [`QLOO_NATIVE_VALIDATION.md`](QLOO_NATIVE_VALIDATION.md).
 - Qloo affinities are **aggregate** taste correlations, not proof of an individual’s preferences.
+- `cross_domain_affinity` requires a traceable domain change; otherwise use `qloo_backed_affinity`.
 
 ## Caching & compliance
 

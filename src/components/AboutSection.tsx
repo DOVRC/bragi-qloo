@@ -38,8 +38,8 @@ export function AboutSection() {
                 overlap with an explicit evidence threshold; verified venues are preferred.
               </li>
               <li>
-                Demonstration profiles are labeled and used only when verified matches are
-                insufficient.
+                Live mode never invents demonstration profiles when verified matches are empty;
+                demonstration entries remain labeled and sample-mode only.
               </li>
             </ul>
           </div>

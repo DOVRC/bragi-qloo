@@ -47,4 +47,27 @@ describe("classifySignal", () => {
     expect(s.kind).toBe("named_entity");
     expect(s.inferredType).toBe("urn:entity:artist");
   });
+
+  it("does not invent an artist type for unknown named entities", () => {
+    const s = classifySignal("Frida Kahlo");
+    expect(s.kind).toBe("named_entity");
+    expect(s.inferredType).toBeUndefined();
+  });
+});
+
+describe("validateDiscoverRequest excludeEntryIds", () => {
+  it("accepts bounded exclude ids for Not my style feedback", () => {
+    const r = validateDiscoverRequest({
+      query: "Radiohead",
+      signals: ["Radiohead"],
+      excludeEntryIds: ["teatro-pablo-tobon", "demo-atelier-norte"],
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.excludeEntryIds).toEqual([
+        "teatro-pablo-tobon",
+        "demo-atelier-norte",
+      ]);
+    }
+  });
 });

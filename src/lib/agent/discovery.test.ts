@@ -14,16 +14,45 @@ describe("planInsights", () => {
     const a = parseDiscoverInput({
       query: "I love Radiohead, Studio Ghibli, and experimental jazz in Medellín",
     });
-    const planA = planInsights(a.signals, [{ id: "1", name: "Radiohead" }], "Medellín");
+    const planA = planInsights(
+      a.signals,
+      [{ id: "1", name: "Radiohead", type: "urn:entity:artist" }],
+      "Medellín",
+    );
     expect(planA.some((p) => p.filterType === "urn:entity:artist")).toBe(true);
     expect(planA.some((p) => p.filterType === "urn:entity:movie")).toBe(true);
 
     const b = parseDiscoverInput({
       query: "I love reggaeton, urban fashion, and latin dance in Medellín",
     });
-    const planB = planInsights(b.signals, [{ id: "2", name: "Bad Bunny" }], "Medellín");
+    const planB = planInsights(
+      b.signals,
+      [{ id: "2", name: "Bad Bunny", type: "urn:entity:artist" }],
+      "Medellín",
+    );
     expect(planB.some((p) => p.filterType === "urn:entity:brand")).toBe(true);
     expect(planB.some((p) => p.filterType === "urn:entity:artist")).toBe(true);
+  });
+
+  it("does not force artist Insights merely because some entity resolved", () => {
+    const film = parseDiscoverInput({
+      query: "Studio Ghibli",
+      signals: ["Studio Ghibli"],
+    });
+    const plan = planInsights(
+      film.signals,
+      [{ id: "g", name: "Studio Ghibli", type: "urn:entity:brand" }],
+      "Medellín",
+    );
+    expect(plan[0]?.filterType).not.toBeUndefined();
+    expect(
+      plan.some(
+        (p) =>
+          p.filterType === "urn:entity:brand" ||
+          p.filterType === "urn:entity:movie" ||
+          p.filterType === "urn:entity:place",
+      ),
+    ).toBe(true);
   });
 });
 

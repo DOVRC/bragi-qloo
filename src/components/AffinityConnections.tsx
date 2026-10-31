@@ -26,7 +26,8 @@ export function AffinityConnections({
         </h3>
         <p className="mt-2 max-w-2xl text-sm text-bragi-navy/60">
           These affinities were retrieved from your combined interests — not invented pairwise
-          edges. Select one to highlight places that actually used it in matching.
+          edges. Select one to highlight matches that actually used it in evidence-backed
+          ranking.
         </p>
       </div>
 

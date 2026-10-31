@@ -47,6 +47,10 @@ canister_ids.json
 scripts/_promote-root.ps1
 scripts/_secret-scan.mjs
 scripts/_push-qloo-prod-env.mjs
+scripts/_probe-explainability.mjs
+scripts/_probe-affinity-fields.mjs
+scripts/_probe-metro-city.mjs
+scripts/_probe-metro-search.mjs
 
 # visual QA artifacts
 qa-artifacts/

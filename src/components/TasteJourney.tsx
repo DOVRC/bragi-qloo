@@ -8,26 +8,65 @@ import {
   Network,
   SlidersHorizontal,
 } from "lucide-react";
-import type { DiscoverResponse, DiscoverSuccess } from "@/lib/types";
+import type {
+  DiscoverResponse,
+  DiscoverSuccess,
+  DiscoveryIntent,
+  Recommendation,
+} from "@/lib/types";
 import { buildDiscoverQuery, PRESET_A, PRESET_B } from "@/lib/presets";
 import { TasteSelector } from "./TasteSelector";
 import { AffinityConnections } from "./AffinityConnections";
 import { RecommendationCard } from "./RecommendationCard";
 import { TasteEvidencePanel } from "./TasteEvidencePanel";
 import { AgentSteps } from "./AgentSteps";
+import { TasteDna } from "./TasteDna";
+import { NativeAffinityCompare } from "./NativeAffinityCompare";
+import {
+  moreLikeSignals,
+  pickNextSurpriseAffinity,
+  uniquePreserve,
+} from "@/lib/tasteFeedback";
 
 type Step = 1 | 2 | 3 | 4;
+
+const INTENT_OPTIONS: {
+  id: DiscoveryIntent;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "creators",
+    label: "Creators",
+    hint: "Independent artists, collectives, and cultural projects",
+  },
+  {
+    id: "places",
+    label: "Places",
+    hint: "Venues, museums, and public cultural spaces",
+  },
+  {
+    id: "mixed",
+    label: "Surprise me",
+    hint: "A balanced mix of creators and places",
+  },
+];
 
 export function TasteJourney() {
   const [step, setStep] = useState<Step>(1);
   const [selected, setSelected] = useState<string[]>([...PRESET_A]);
   const [budgetCop, setBudgetCop] = useState(100_000);
+  const [intent, setIntent] = useState<DiscoveryIntent>("mixed");
   const [result, setResult] = useState<DiscoverSuccess | null>(null);
   const [previous, setPrevious] = useState<DiscoverSuccess | null>(null);
   const [pending, startTransition] = useTransition();
   const [clientError, setClientError] = useState<string | null>(null);
   const [activeAffinityId, setActiveAffinityId] = useState<string | null>(null);
   const [selectedRecId, setSelectedRecId] = useState<string | null>(null);
+  const [excludeEntryIds, setExcludeEntryIds] = useState<string[]>([]);
+  const [feedbackNote, setFeedbackNote] = useState<string | null>(null);
+  const [surpriseIndex, setSurpriseIndex] = useState(0);
+  const [usedSurpriseNames, setUsedSurpriseNames] = useState<string[]>([]);
   const inFlight = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -48,15 +87,32 @@ export function TasteJourney() {
     };
   }, [result, previous]);
 
-  function runDiscovery() {
+  function runDiscovery(overrides?: {
+    signals?: string[];
+    intent?: DiscoveryIntent;
+    excludeEntryIds?: string[];
+    prioritySignals?: string[];
+    jumpToStep?: Step;
+    note?: string;
+  }) {
     setClientError(null);
-    if (selected.length === 0) {
+    const nextSignals = overrides?.signals ?? selected;
+    const nextIntent = overrides?.intent ?? intent;
+    const nextExclude = overrides?.excludeEntryIds ?? excludeEntryIds;
+    const nextPriority = overrides?.prioritySignals;
+    if (nextSignals.length === 0) {
       setClientError("Select at least one cultural interest to continue.");
       return;
     }
     if (pending || inFlight.current) return;
 
-    const query = buildDiscoverQuery(selected, "Medellín", budgetCop);
+    if (overrides?.signals) setSelected(nextSignals);
+    if (overrides?.intent) setIntent(nextIntent);
+    if (overrides?.excludeEntryIds) setExcludeEntryIds(nextExclude);
+    if (overrides?.note) setFeedbackNote(overrides.note);
+    else if (!overrides) setFeedbackNote(null);
+
+    const query = buildDiscoverQuery(nextSignals, "Medellín", budgetCop);
     inFlight.current = true;
     startTransition(async () => {
       try {
@@ -65,9 +121,12 @@ export function TasteJourney() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             query,
-            signals: selected,
+            signals: nextSignals,
             city: "Medellín",
             budgetCop,
+            intent: nextIntent,
+            excludeEntryIds: nextExclude.length ? nextExclude : undefined,
+            prioritySignals: nextPriority?.length ? nextPriority : undefined,
           }),
         });
         const data = (await res.json()) as DiscoverResponse;
@@ -80,7 +139,7 @@ export function TasteJourney() {
         setResult(data);
         setActiveAffinityId(null);
         setSelectedRecId(data.recommendations[0]?.entry.id ?? null);
-        setStep(2);
+        setStep(overrides?.jumpToStep ?? 2);
         requestAnimationFrame(() => {
           panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
@@ -92,6 +151,53 @@ export function TasteJourney() {
     });
   }
 
+  function handleMoreLikeThis(rec: Recommendation) {
+    const { signals: next, priority } = moreLikeSignals(rec, selected);
+    runDiscovery({
+      signals: next,
+      prioritySignals: priority,
+      jumpToStep: 3,
+      note: `More like “${rec.entry.name}” — prioritized ${priority.slice(0, 3).join(", ") || "related evidence"} for Qloo Search/Insights within the resolve budget.`,
+    });
+  }
+
+  function handleNotMyStyle(rec: Recommendation) {
+    const nextExclude = [...new Set([...excludeEntryIds, rec.entry.id])];
+    runDiscovery({
+      excludeEntryIds: nextExclude,
+      jumpToStep: 3,
+      note: `Excluded “${rec.entry.name}” from this session — re-ranked without inventing replacements.`,
+    });
+  }
+
+  function handleSurpriseAgain() {
+    if (!result) {
+      setIntent("mixed");
+      runDiscovery({ intent: "mixed" });
+      return;
+    }
+    const affinities = result.trace.discoveredAffinities;
+    const surprise = pickNextSurpriseAffinity(affinities, usedSurpriseNames, surpriseIndex);
+    if (surprise) {
+      setSurpriseIndex((i) => i + 1);
+      setUsedSurpriseNames((prev) =>
+        uniquePreserve([...prev, surprise.name]).slice(-12),
+      );
+    }
+    const nextSignals = surprise
+      ? uniquePreserve([surprise.name, ...selected])
+      : selected;
+    runDiscovery({
+      signals: nextSignals,
+      prioritySignals: surprise ? [surprise.name] : undefined,
+      intent: "mixed",
+      jumpToStep: 3,
+      note: surprise
+        ? `Surprise path — prioritized Insights affinity “${surprise.name}” for Qloo resolution (rotated, not always the first).`
+        : "Surprise path — mixed creators + places with your current interests.",
+    });
+  }
+
   function resetJourney() {
     setStep(1);
     setResult(null);
@@ -100,7 +206,28 @@ export function TasteJourney() {
     setActiveAffinityId(null);
     setSelectedRecId(null);
     setSelected([...PRESET_A]);
+    setIntent("mixed");
+    setExcludeEntryIds([]);
+    setFeedbackNote(null);
+    setSurpriseIndex(0);
+    setUsedSurpriseNames([]);
   }
+
+  const focusedRec = useMemo(() => {
+    if (!result) return null;
+    return (
+      result.recommendations.find((r) => r.entry.id === selectedRecId) ??
+      result.recommendations[0] ??
+      null
+    );
+  }, [result, selectedRecId]);
+
+  const whyHeading = useMemo(() => {
+    const kind = focusedRec?.entry.kind;
+    if (kind === "creator") return "Why this creator fits your taste";
+    if (kind === "project") return "Why this creative space fits your taste";
+    return "Why this place fits your taste";
+  }, [focusedRec]);
 
   const highlightedRecIds = useMemo(() => {
     if (!result || !activeAffinityId) return new Set<string>();
@@ -154,6 +281,37 @@ export function TasteJourney() {
               </div>
               <TasteSelector selected={selected} onChange={setSelected} />
 
+              <fieldset className="mt-8">
+                <legend className="text-sm font-medium text-bragi-navy">
+                  What do you want to discover?
+                </legend>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {INTENT_OPTIONS.map((option) => {
+                    const active = intent === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setIntent(option.id)}
+                        className={`rounded-2xl border px-3 py-3 text-left transition duration-200 ease-out ${
+                          active
+                            ? "border-bragi-accent bg-bragi-accent/10 shadow-[0_8px_24px_rgba(75,98,193,0.12)]"
+                            : "border-bragi-ink/10 bg-bragi-cream/40 hover:border-bragi-accent/35"
+                        }`}
+                      >
+                        <span className="block font-display text-lg text-bragi-navy">
+                          {option.label}
+                        </span>
+                        <span className="mt-1 block text-[11px] leading-snug text-bragi-navy/55">
+                          {option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
               <label className="mt-8 block max-w-xs space-y-2">
                 <span className="text-sm font-medium text-bragi-navy">Budget (COP)</span>
                 <input
@@ -170,7 +328,7 @@ export function TasteJourney() {
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={runDiscovery}
+                  onClick={() => runDiscovery()}
                   className="min-h-11 rounded-full bg-bragi-accent px-6 text-sm font-semibold text-white transition duration-200 ease-out hover:bg-bragi-accent/90 disabled:opacity-60"
                 >
                   {pending ? "Exploring connections…" : "Explore my connections"}
@@ -316,8 +474,8 @@ export function TasteJourney() {
                       <h3 className="font-display text-2xl">Where your tastes could take you</h3>
                     </div>
                     <p className="mt-1 text-sm text-bragi-navy/60">
-                      Curated Medellín catalogue matches — venues and programs, not confirmed
-                      tickets.
+                      Curated Medellín matches — creators and cultural spaces with evidence. Not
+                      confirmed tickets or live event inventories.
                     </p>
                   </div>
                   <button
@@ -329,6 +487,12 @@ export function TasteJourney() {
                   </button>
                 </div>
 
+                {feedbackNote && (
+                  <p className="rounded-2xl border border-bragi-accent/25 bg-bragi-accent/5 px-4 py-3 text-sm text-bragi-navy/75">
+                    {feedbackNote}
+                  </p>
+                )}
+
                 {result.warnings.length > 0 && (
                   <ul className="space-y-1 border-l-2 border-bragi-ink/20 pl-4 text-sm text-bragi-navy/65">
                     {result.warnings.map((w) => (
@@ -337,12 +501,16 @@ export function TasteJourney() {
                   </ul>
                 )}
 
+                <TasteDna result={result} />
+                <NativeAffinityCompare recommendations={result.recommendations} />
+
                 {result.recommendations.length === 0 ? (
                   <div className="rounded-[1.5rem] border border-bragi-ink/10 bg-white p-6 text-sm text-bragi-navy/70">
                     <p className="font-display text-xl text-bragi-navy">No clear local matches</p>
                     <p className="mt-2">
-                      Taste evidence was retrieved, but nothing cleared the evidence threshold.
-                      Refine interests or raise budget.
+                      Taste evidence was retrieved, but nothing cleared the evidence threshold for
+                      this intent. Bragi does not invent demonstration profiles in live mode —
+                      refine interests, switch intent, or raise budget.
                     </p>
                   </div>
                 ) : (
@@ -362,12 +530,22 @@ export function TasteJourney() {
                         recommendation={rec}
                         rank={i}
                         highlighted={highlightedRecIds.has(rec.entry.id)}
+                        onMoreLikeThis={handleMoreLikeThis}
+                        onNotMyStyle={handleNotMyStyle}
                       />
                     </div>
                   ))
                 )}
 
                 <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={handleSurpriseAgain}
+                    className="min-h-11 rounded-full bg-bragi-navy px-5 text-sm font-semibold text-bragi-cream disabled:opacity-60"
+                  >
+                    Surprise me again
+                  </button>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
@@ -397,9 +575,7 @@ export function TasteJourney() {
                   <ArrowLeft className="h-4 w-4" aria-hidden />
                   All recommendations
                 </button>
-                <h3 className="font-display text-2xl text-bragi-navy">
-                  Why this place fits your taste
-                </h3>
+                <h3 className="font-display text-2xl text-bragi-navy">{whyHeading}</h3>
                 {(selectedRecId
                   ? result.recommendations.filter((r) => r.entry.id === selectedRecId)
                   : result.recommendations.slice(0, 1)
