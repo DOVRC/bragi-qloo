@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-30 (prioritySignals feedback → Qloo resolve budget)  
 **Active branch:** `feature/qloo-native-intelligence`  
-**Tip:** see `git rev-parse HEAD` after push  
+**Tip:** `ba2ade0` (`fix: prioritize refinement signals within Qloo resolve budget`)  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
 
 ## Sprint audit (Final Hackathon Sprint)

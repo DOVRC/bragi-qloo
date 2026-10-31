@@ -11,8 +11,10 @@ Screenshots: `docs/screenshots/` (no secrets).
 | `00-production-hero.png` | Production landing |
 | `01-interests-five.png` | Interests with 5 tastes + intent selector |
 | `02-connections-live.png` | Live Qloo affinities (Connections) |
-| `02-taste-dna.png` / `03-*.png` | Taste DNA + feedback re-rank |
+| `02-taste-dna.png` | Taste DNA evidence shape |
+| `03-feedback-rerank.png` | More like this — prioritySignals + affinity delta |
 | `04-why-explainability.png` | Native candidate explainability (affinity vs popularity) |
+| `05-creator-discovery.png` | Independent creator (Odio a Botero) |
 
 ## Paste-ready English description
 
