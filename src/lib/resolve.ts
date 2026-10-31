@@ -8,12 +8,28 @@ export interface ResolvedSignal {
   warning?: string;
 }
 
+/**
+ * Multi-token queries must not accept a much shorter proper-prefix candidate
+ * (e.g. "post-punk" → "Post"). Exact matches stay unaffected.
+ */
+export function isIncompleteShortPrefix(queryNorm: string, candidateNorm: string): boolean {
+  if (!queryNorm || !candidateNorm || queryNorm === candidateNorm) return false;
+  const qWords = queryNorm.split(/\s+/).filter(Boolean);
+  if (qWords.length < 2) return false;
+  if (!queryNorm.startsWith(candidateNorm)) return false;
+  const after = queryNorm.slice(candidateNorm.length);
+  if (!after.startsWith(" ")) return false;
+  const cWords = candidateNorm.split(/\s+/).filter(Boolean);
+  return cWords.length < qWords.length;
+}
+
 /** Prefer exact / substring name matches over popularity alone. */
 export function scoreNameMatch(query: string, candidateName: string): number {
   const q = normalizeName(query);
   const c = normalizeName(candidateName);
   if (!q || !c) return 0;
   if (q === c) return 100;
+  if (isIncompleteShortPrefix(q, c)) return 0;
   if (c.startsWith(q) || q.startsWith(c)) return 90;
   if (c.includes(q) || q.includes(c)) return 75;
 
