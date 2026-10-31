@@ -202,50 +202,74 @@ export class DiscoveryAgent {
           setStep(steps, "insights", "skipped", "No entity/tag IDs available for Insights");
           warnings.push("Insights skipped because no Qloo entities or tags were resolved.");
         } else {
-          const plan = planInsights(parsed.signals, resolvedEntities, parsed.city);
+          // Skip broad place Insights — indexed venues are ranked via Path A
+          // (filter.results.entities) to avoid a duplicate slow place call.
+          const plan = planInsights(parsed.signals, resolvedEntities, parsed.city).filter(
+            (p) => p.filterType !== "urn:entity:place",
+          );
           const executed: string[] = [];
+          // Bound concurrency (max 2) and per-call timeout so the 60s route budget holds.
+          const INSIGHTS_CALL_TIMEOUT_MS = 18_000;
+          const chunks: typeof plan[] = [];
+          for (let i = 0; i < plan.length; i += 2) chunks.push(plan.slice(i, i + 2));
 
-          for (const attempt of plan) {
-            try {
-              const result = await this.qloo.getInsights({
-                filterType: attempt.filterType,
-                signalEntityIds: resolvedEntities.map((e) => e.id),
-                signalTags: signalTagIds.length ? signalTagIds.slice(0, 5) : undefined,
-                locationQuery: attempt.locationQuery,
-                take: 5,
-              });
-              executed.push(
-                `${attempt.filterType.split(":").pop()}${attempt.locationQuery ? `@${attempt.locationQuery}` : ""}:${result.entities.length}`,
-              );
-              affinityEntities.push(...result.entities);
-              affinityTags.push(...result.tags);
-              for (const e of result.entities.slice(0, 4)) {
-                evidence.push({
-                  source: "qloo_insights",
-                  entityId: e.id,
-                  entityName: e.name,
-                  detail: `Insights (${attempt.filterType}) — ${attempt.reason}: “${e.name}”.`,
-                });
-              }
-              // If a planned call returns nothing useful, continue; do not invent results.
-            } catch (err) {
-              if (err instanceof QlooClientError) {
-                if (err.code === "FORBIDDEN" || err.code === "TIMEOUT") {
-                  warnings.push(
-                    `Insights ${attempt.filterType} ${err.code.toLowerCase()}; continuing with partial evidence.`,
-                  );
-                  continue;
+          let fatalInsights: QlooClientError | null = null;
+          for (const chunk of chunks) {
+            const settled = await Promise.allSettled(
+              chunk.map((attempt) =>
+                this.qloo.getInsights({
+                  filterType: attempt.filterType,
+                  signalEntityIds: resolvedEntities.map((e) => e.id),
+                  signalTags: signalTagIds.length ? signalTagIds.slice(0, 5) : undefined,
+                  locationQuery: attempt.locationQuery,
+                  take: 5,
+                  timeoutMs: INSIGHTS_CALL_TIMEOUT_MS,
+                }).then((result) => ({ attempt, result })),
+              ),
+            );
+
+            for (const item of settled) {
+              if (item.status === "fulfilled") {
+                const { attempt, result } = item.value;
+                executed.push(
+                  `${attempt.filterType.split(":").pop()}${attempt.locationQuery ? `@${attempt.locationQuery}` : ""}:${result.entities.length}`,
+                );
+                affinityEntities.push(...result.entities);
+                affinityTags.push(...result.tags);
+                for (const e of result.entities.slice(0, 4)) {
+                  evidence.push({
+                    source: "qloo_insights",
+                    entityId: e.id,
+                    entityName: e.name,
+                    detail: `Insights (${attempt.filterType}) — ${attempt.reason}: “${e.name}”.`,
+                  });
                 }
-                setStep(steps, "insights", "error", err.message);
-                return {
-                  ok: false,
-                  mode: "live",
-                  error: { code: err.code, message: err.message },
-                  steps,
-                };
+              } else {
+                const err = item.reason;
+                if (err instanceof QlooClientError) {
+                  if (err.code === "FORBIDDEN" || err.code === "TIMEOUT") {
+                    warnings.push(
+                      `Insights call ${err.code.toLowerCase()}; continuing with partial evidence.`,
+                    );
+                    continue;
+                  }
+                  fatalInsights = err;
+                  break;
+                }
+                throw err;
               }
-              throw err;
             }
+            if (fatalInsights) break;
+          }
+
+          if (fatalInsights) {
+            setStep(steps, "insights", "error", fatalInsights.message);
+            return {
+              ok: false,
+              mode: "live",
+              error: { code: fatalInsights.code, message: fatalInsights.message },
+              steps,
+            };
           }
 
           affinityEntities = dedupeEntities(affinityEntities);
@@ -317,11 +341,22 @@ export class DiscoveryAgent {
             }),
             limit: 3,
           });
-          nativeRecs = native.recommendations;
+          nativeRecs = native.recommendations.map((r) => ({
+            ...r,
+            qlooAggregateExplainability: native.aggregateExplainability,
+          }));
           warnings.push(...native.warnings);
+          if (native.elapsedMs != null) {
+            warnings.push(`Qloo-native Insights elapsed ${native.elapsedMs}ms.`);
+          }
           if (native.returnedCandidateCount > 0) {
             warnings.push(
-              `Qloo-native path ranked ${native.returnedCandidateCount}/${native.indexedCandidateCount} indexed candidates.`,
+              `Qloo-native path ranked ${native.returnedCandidateCount}/${native.indexedCandidateCount} indexed candidates (sorted by query.affinity when present).`,
+            );
+          }
+          if (native.aggregateExplainability?.available) {
+            warnings.push(
+              "Aggregate Insights explainability is available for the native result set (not per-card).",
             );
           }
         } catch (err) {

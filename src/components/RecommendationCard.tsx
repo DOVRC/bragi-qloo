@@ -213,9 +213,15 @@ function ProvenanceBreakdown({ recommendation }: { recommendation: Recommendatio
                 .join(" · ")
             : "No Qloo contribution on this card."}
         </p>
-        {expl?.available && expl.contributions.some((c) => c.score != null) && (
+        {expl?.available && expl.scope === "candidate" && (
           <p className="mt-1 text-[11px] text-bragi-navy/45">
-            Native explainability scores from Qloo (0–1), not Bragi points.
+            Candidate explainability from Qloo (0–1) — not aggregate, not Bragi points.
+          </p>
+        )}
+        {recommendation.qlooAggregateExplainability?.available && (
+          <p className="mt-1 text-[11px] text-bragi-navy/40">
+            A separate aggregate explainability exists for the overall Insights set (not shown as
+            this card’s contributions).
           </p>
         )}
       </div>
@@ -226,7 +232,7 @@ function ProvenanceBreakdown({ recommendation }: { recommendation: Recommendatio
           {entry.kind === "creator"
             ? " (independent creator catalogue)"
             : entry.qlooEntityId
-              ? " (catalogue + Qloo entity id)"
+              ? " (catalogue + verified Medellín Qloo place id)"
               : " (local catalogue)"}
         </p>
       </div>
@@ -234,11 +240,9 @@ function ProvenanceBreakdown({ recommendation }: { recommendation: Recommendatio
         <p className="font-semibold uppercase tracking-wider text-bragi-navy/40">Why selected</p>
         <p className="mt-1">
           {recommendation.rankingPath === "qloo_native"
-            ? `Qloo Insights candidate ranking${
-                recommendation.qlooNativeAffinity != null
-                  ? ` · affinity ${recommendation.qlooNativeAffinity.toFixed(2)}`
-                  : ""
-              }`
+            ? recommendation.qlooNativeAffinity != null
+              ? `Qloo Insights query.affinity ${recommendation.qlooNativeAffinity.toFixed(2)}`
+              : "Qloo Insights candidate (affinity not provided — no invented score)"
             : `Bragi evidence-aware catalogue score (${recommendation.score.toFixed(1)} pts)`}
           {recommendation.domainChangeEstablished ? " · domain change established" : ""}
         </p>

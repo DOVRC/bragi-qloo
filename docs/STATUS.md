@@ -1,38 +1,35 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (Qloo native intelligence — feature branch)  
+**Last updated:** 2026-10-30 (native ranking QA hardening)  
 **Active branch:** `feature/qloo-native-intelligence`  
-**Remote tip:** verify with `git ls-remote origin refs/heads/main`  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
 
-## Production (main — leave untouched until credential rotation)
+## Production (main — untouched)
 
 | Item | Value |
 | --- | --- |
-| Public URL | https://bragi-qloo.vercel.app |
-| Live Qloo | Working on main deploy |
-| Credential | Treat screenshot-exposed `hack_` key as **compromised until rotated** — do not merge this feature until rotated |
+| URL | https://bragi-qloo.vercel.app |
+| SHA | `149f1b9` |
+| Credential | Treat as unrotated/`hack_` until Daniel rotates — **merge blocked** |
 
-## This feature branch
+## Feature branch hardening
 
-- Dual-path ranking: **Qloo-native** (`filter.results.entities` + explainability) vs **Bragi catalogue**
-- `feature.explainability` normalized and surfaced in Why cards
-- Cross-domain label requires traceable domain change (`qloo_backed_affinity` otherwise)
-- Independent creators/projects: Alcolirykoz, Odio a Botero, Casa Tres Patios, Centro Cultural Moravia
-- Validation: [`QLOO_NATIVE_VALIDATION.md`](QLOO_NATIVE_VALIDATION.md)
+- Ranking uses **`query.affinity`**, never popularity  
+- Candidate vs aggregate explainability separated  
+- Removed false Qloo IDs (MAMM = Mexico City; Orquideorama ≠ full Jardín program)  
+- Indexed Medellín places: Teatro Pablo Tobón, Teatro Metropolitano  
+- Insights concurrency/timeout budget for 60s route  
+- Docs: [`QLOO_NATIVE_VALIDATION.md`](QLOO_NATIVE_VALIDATION.md)
 
 ## Verify
 
 ```bash
-npm ci
-npm run typecheck && npm test && npm run lint && npm run build
-npm audit --omit=dev
-npm run qloo:ablation
+npm ci && npm run typecheck && npm test && npm run lint && npm run build
+npm audit --omit=dev && npm run qloo:ablation
 ```
 
-## Remaining
+## Remaining before merge
 
-1. Rotate Qloo API key; update Vercel Secret  
-2. Preview deploy / browser Taste Journey QA  
-3. Merge to main only after 1–2  
-4. Devpost screenshots + submit  
+1. Rotate Qloo API key → update Vercel Production Secret  
+2. PR CI green + preview Taste Journey QA  
+3. Merge via GitHub PR only  

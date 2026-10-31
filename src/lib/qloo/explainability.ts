@@ -9,40 +9,39 @@ export interface ExplainabilityContribution {
   score?: number;
 }
 
-export interface NormalizedExplainability {
+export interface CandidateExplainability {
+  scope: "candidate";
+  /** True only when candidate-specific contribution scores exist */
   available: boolean;
   warning?: string;
-  /** Per-result contributions keyed under signal.interests.entities */
   contributions: ExplainabilityContribution[];
-  /** Aggregate / top-level payload keys for debugging (no secrets) */
-  aggregateKeys: string[];
 }
 
+export interface AggregateExplainability {
+  scope: "aggregate";
+  /** True only when aggregate contribution scores exist (not warning-only) */
+  available: boolean;
+  warning?: string;
+  contributions: ExplainabilityContribution[];
+}
+
+/** @deprecated use CandidateExplainability / AggregateExplainability */
+export type NormalizedExplainability = CandidateExplainability | AggregateExplainability;
+
 /**
- * Extract explainability from an Insights response entity or top-level query object.
- * Supports shapes observed on the hackathon API (2026-10-30).
+ * Extract explainability block from a payload fragment.
+ * `available` is true only when contribution scores exist — a warning alone is not success.
  */
-export function normalizeExplainability(source: unknown): NormalizedExplainability {
-  if (!source || typeof source !== "object") {
-    return { available: false, contributions: [], aggregateKeys: [] };
-  }
+function parseExplainabilityBlock(
+  expl: Record<string, unknown> | null,
+  scope: "candidate" | "aggregate",
+): CandidateExplainability | AggregateExplainability {
+  const empty =
+    scope === "candidate"
+      ? ({ scope: "candidate", available: false, contributions: [] } as CandidateExplainability)
+      : ({ scope: "aggregate", available: false, contributions: [] } as AggregateExplainability);
 
-  const root = source as Record<string, unknown>;
-  const query =
-    root.query && typeof root.query === "object"
-      ? (root.query as Record<string, unknown>)
-      : root;
-  const expl =
-    (query.explainability && typeof query.explainability === "object"
-      ? (query.explainability as Record<string, unknown>)
-      : null) ||
-    (root.explainability && typeof root.explainability === "object"
-      ? (root.explainability as Record<string, unknown>)
-      : null);
-
-  if (!expl) {
-    return { available: false, contributions: [], aggregateKeys: [] };
-  }
+  if (!expl) return empty;
 
   const warning =
     typeof expl.warning === "string" && expl.warning.trim()
@@ -69,7 +68,7 @@ export function normalizeExplainability(source: unknown): NormalizedExplainabili
         const scoreRaw = row.score ?? row.weight ?? row.influence ?? row.value;
         contributions.push({
           key: entityId ?? String(i),
-          entityId: entityId,
+          entityId,
           score: typeof scoreRaw === "number" ? clamp01(scoreRaw) : undefined,
         });
       }
@@ -77,25 +76,75 @@ export function normalizeExplainability(source: unknown): NormalizedExplainabili
   } else if (signalBlock && typeof signalBlock === "object") {
     for (const [key, value] of Object.entries(signalBlock as Record<string, unknown>)) {
       if (typeof value === "number") {
-        contributions.push({ key, entityId: looksLikeId(key) ? key : undefined, score: clamp01(value) });
+        contributions.push({
+          key,
+          entityId: looksLikeId(key) ? key : undefined,
+          score: clamp01(value),
+        });
       } else if (value && typeof value === "object") {
         const row = value as Record<string, unknown>;
         const scoreRaw = row.score ?? row.weight ?? row.influence ?? row.value;
         contributions.push({
           key,
-          entityId: pickString(row.entity_id) ?? pickString(row.id) ?? (looksLikeId(key) ? key : undefined),
+          entityId:
+            pickString(row.entity_id) ??
+            pickString(row.id) ??
+            (looksLikeId(key) ? key : undefined),
           score: typeof scoreRaw === "number" ? clamp01(scoreRaw) : undefined,
         });
       }
     }
   }
 
+  const hasScores = contributions.some((c) => typeof c.score === "number");
+  if (scope === "candidate") {
+    return {
+      scope: "candidate",
+      available: hasScores,
+      warning,
+      contributions: hasScores ? contributions : [],
+    };
+  }
   return {
-    available: contributions.length > 0 || Boolean(warning),
+    scope: "aggregate",
+    available: hasScores,
     warning,
-    contributions,
-    aggregateKeys: Object.keys(expl),
+    contributions: hasScores ? contributions : [],
   };
+}
+
+function extractExplObject(source: unknown): Record<string, unknown> | null {
+  if (!source || typeof source !== "object") return null;
+  const root = source as Record<string, unknown>;
+  const query =
+    root.query && typeof root.query === "object"
+      ? (root.query as Record<string, unknown>)
+      : root;
+  if (query.explainability && typeof query.explainability === "object") {
+    return query.explainability as Record<string, unknown>;
+  }
+  if (root.explainability && typeof root.explainability === "object") {
+    return root.explainability as Record<string, unknown>;
+  }
+  return null;
+}
+
+/** Per-entity / per-recommendation explainability only. */
+export function normalizeCandidateExplainability(entitySource: unknown): CandidateExplainability {
+  return parseExplainabilityBlock(extractExplObject(entitySource), "candidate") as CandidateExplainability;
+}
+
+/** Top-level Insights response explainability (result-set average). */
+export function normalizeAggregateExplainability(responseSource: unknown): AggregateExplainability {
+  return parseExplainabilityBlock(extractExplObject(responseSource), "aggregate") as AggregateExplainability;
+}
+
+/**
+ * @deprecated Prefer normalizeCandidateExplainability / normalizeAggregateExplainability.
+ * Kept for older call sites — defaults to candidate scope.
+ */
+export function normalizeExplainability(source: unknown): CandidateExplainability {
+  return normalizeCandidateExplainability(source);
 }
 
 function clamp01(n: number): number {

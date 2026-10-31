@@ -1,93 +1,75 @@
 # Qloo native intelligence — validation notes
 
 **Branch:** `feature/qloo-native-intelligence`  
-**Date:** 2026-10-30  
+**Updated:** 2026-10-30 (affinity/explainability hardening)  
 **Host:** `https://hackathon.api.qloo.com` only  
 
-This document separates **fixture tests** from **limited live verification**. It does **not** claim improved recommendation “accuracy” without external relevance judgments.
+Fixture tests ≠ live verification. No accuracy claims without external judgments.
 
-## Credential note
+## Credential gate
 
-Production and local `.env.local` still use a `hack_`-prefixed key. Any previously screenshot-exposed key must be treated as compromised until rotated at Qloo and replaced in Vercel Secrets. **Do not merge this branch to production until rotation is confirmed.**
+Local/production still use a `hack_`-prefixed key. Treat any screenshot-exposed key as **compromised until rotated**. **Do not merge to main / redeploy production until rotation is confirmed** and the Vercel Secret is updated.
 
-## Endpoints / parameters tested (live, limited)
+## Verified Insights response fields (live)
 
-| Call | Parameters | Result |
+| Field | Location | Role |
 | --- | --- | --- |
-| `GET /search` | `query=Radiohead`, `types=urn:entity:artist`, `take=1` | 200, entity id present |
-| `GET /v2/insights` | `filter.type=urn:entity:artist`, `signal.interests.entities`, `feature.explainability=true`, `take=3` | 200; `query.explainability` present; per-entity explainability present |
-| `GET /search` | venue names + `types=urn:entity:place` | Indexed hits for MAMM, Teatro Pablo Tobón, Teatro Metropolitano, Orquideorama |
-| `GET /v2/insights` | `filter.type=urn:entity:place`, signals + `filter.results.entities` + `feature.explainability=true` | 200; candidate returned with native affinity + explainability |
+| `popularity` | entity root | Global popularity percentile — **not** contextual affinity |
+| `query.affinity` | entity.`query` | Contextual affinity toward input signals |
+| `query.explainability` | per entity | Candidate-specific contribution scores |
+| `query.explainability` | response top-level | Aggregate influence across the result set |
 
-## Native explainability
+Live check (Radiohead → place candidates): popularity ≈ 0.99 while `query.affinity` ≈ 0.74–0.80 for the same entities — **values disagree**, confirming they must not be conflated.
 
-- **Works** on hackathon Insights for artist (and place candidate) requests.
-- Shape observed: `query.explainability["signal.interests.entities"]` (map/array of scores).
-- Warnings path supported: if Qloo returns `query.explainability.warning`, we surface it and do **not** invent contributions.
-- UI labels these as **Qloo explainability (0–1)**, never as Bragi points.
+## Ranking field used
 
-## Qloo-indexed venue coverage
+Path A sorts by **`query.affinity`** when present.  
+If affinity is missing, the candidate may still be retained but **no numeric native score is advertised** and popularity is **not** used as a substitute sort key.
 
-| Catalogue entry | Qloo entity name (Search) | Indexed |
+## Explainability attribution
+
+| Type | Source | UI |
 | --- | --- | --- |
-| MAMM | Museo de Arte Moderno | Yes |
-| Teatro Pablo Tobón Uribe | exact name | Yes |
-| Teatro Metropolitano | Medellín José Gutiérrez Gómez | Yes |
-| Jardín Botánico | Orquideorama Jardín Botánico | Yes |
-| Independent creators / projects | — | **No** (Path B only; never assume Qloo representation) |
+| `CandidateExplainability` | entity.`query.explainability` | Why card contributions |
+| `AggregateExplainability` | top-level `query.explainability` | Labeled as overall set only |
 
-Ambiguous Search hits are rejected unless name match is confident. IDs are stored on catalogue rows only after live verification.
+Warning-only explainability objects are **not** treated as successful evidence. Aggregate contributions are never copied onto a card as if they were candidate-specific.
+
+## Candidate identity verification
+
+| Catalogue entry | Qloo id status | Notes |
+| --- | --- | --- |
+| Teatro Pablo Tobón Uribe | **Indexed** (`732F24F4-…`) | Medellín address verified |
+| Teatro Metropolitano | **Indexed** (`601A61CD-…`) | Medellín address verified |
+| MAMM | **Not indexed** | Prior Search hit was Mexico City’s Museo de Arte Moderno |
+| Jardín Botánico programming | **Not indexed** | Orquideorama Qloo record is a structure, not the full garden program |
+
+Creators/projects remain Path B only (no fabricated Qloo IDs).
 
 ## Dual-path ranking
 
 | Path | Mechanism | Provenance |
 | --- | --- | --- |
-| **A — qloo_native** | Insights `filter.results.entities` (+ explainability) | `rankingPath=qloo_native`, `qlooNativeAffinity` on 0–1 scale |
-| **B — bragi_catalogue** | Evidence-aware hook/tag overlap | `rankingPath=bragi_catalogue`, Bragi `score` points |
+| A — `qloo_native` | `filter.results.entities` + `feature.explainability` | `query.affinity` when present |
+| B — `bragi_catalogue` | Evidence-aware hooks/tags | Bragi point score |
 
-Merge prefers Path A when present, then fills from Path B. **Scores are never equated across paths.**
+## Performance
 
-## Cross-domain labeling fix
+- Exploratory Insights: max 2 concurrent calls, **18s** per-call timeout; place fan-out removed (covered by Path A).
+- Native Path A Insights: **20s** timeout.
+- Live Path A probe for 4 candidates: ~**194ms** once Search resolved (hackathon variance still applies).
+- Route `maxDuration` remains 60s; sequential 45s×N calls avoided.
 
-`classifyStrength()` no longer assigns `cross_domain_affinity` from Insights point totals alone. Cross-domain requires `hasTraceableDomainChange(sourceDomains, resultDomain)`. Otherwise Insights-heavy matches use `qloo_backed_affinity`.
-
-## Independent creators / projects added
-
-| Id | Kind | Public source |
-| --- | --- | --- |
-| `creator-alcolirykoz` | creator | https://alcolirykoz.com/ |
-| `creator-odio-a-botero` | creator | https://odioabotero.bandcamp.com/ |
-| `project-casa-tres-patios` | project | https://casatrespatios.org/ |
-| `project-centro-cultural-moravia` | project | https://centroculturalmoravia.org/ |
-
-No invented prices, contacts, or booking availability. No fabricated Qloo entity IDs for these rows.
-
-## Fixture ablation (offline)
+## Fixture ablation
 
 ```bash
 npm run qloo:ablation
 ```
 
-Compares `user_only` / `search_only` / `insights_only` / `full` on fixed TasteProfiles. Reports catalogue indexed + creator coverage. Path A is live-only.
-
 ## Automated tests
 
-- Domains / cross-domain gate
-- Explainability normalizer (present / warning / missing)
-- Strength classification regressions
-- Local creator without Qloo id
-- Empty / overfitted hook cases
-- Native/catalogue merge without score conflation
-
-Run: `npm test` · `npm run typecheck` · `npm run lint` · `npm run build`
-
-## Matching quality limitations
-
-- Catalogue hooks remain a Path B signal; overfit risk is reduced by caps + domain gates but not eliminated.
-- Place Search names can omit city; IDs were affinity-tested but geocode was not exhaustively audited for every property field.
-- Native affinity magnitudes are Qloo’s scale — not calibrated to Bragi points.
-- Empty Insights / timeouts fall back to Path B with explicit warnings.
+45 unit tests including: affinity≠popularity, missing affinity, candidate vs aggregate explainability, warning-only, native sort order, timeout → empty native + catalogue merge fallback, cross-domain gate, creator without Qloo id.
 
 ## Release gate
 
-Push feature branch for review. Merge/deploy to production **only after** credential rotation + green CI + browser Taste Journey QA on a preview deployment.
+Push → PR → Vercel preview QA → rotate credential → merge only if CI + identity + affinity/explainability gates pass.

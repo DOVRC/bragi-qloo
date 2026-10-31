@@ -36,10 +36,8 @@ export const MEDELLIN_CATALOGUE: CatalogueEntry[] = [
     publicUrl: "https://www.mamm.org.co/",
     actionHint: "Check current exhibitions and film programming on the museum site.",
     kind: "venue",
-    // Live Search (2026-10-30): "Museo de Arte Moderno" place hit — affinity-tested via Insights.
-    qlooEntityId: "76DE7947-7817-4F7A-989A-0235D5E07CCC",
-    qlooEntityType: "urn:entity:place",
-    qlooEntityName: "Museo de Arte Moderno",
+    // Qloo Search hit "Museo de Arte Moderno" resolved to Mexico City — not Medellín MAMM.
+    // Keep Path B catalogue matching only (no qlooEntityId).
   },
   {
     id: "teatro-pablo-tobon",
@@ -229,9 +227,8 @@ export const MEDELLIN_CATALOGUE: CatalogueEntry[] = [
     publicUrl: "https://www.botanicomedellin.org/",
     actionHint: "Review event calendar on the garden’s official site.",
     kind: "venue",
-    qlooEntityId: "B1E14CB4-C910-476F-B41D-A7AE7261C62B",
-    qlooEntityType: "urn:entity:place",
-    qlooEntityName: "Orquideorama Jardín Botánico",
+    // Qloo indexes "Orquideorama Jardín Botánico" (Medellín) — a structure, not the full
+    // garden cultural program. Leave Path B only to avoid over-claiming identity.
   },
   {
     id: "creator-alcolirykoz",

@@ -27,6 +27,8 @@ export interface InsightsParams {
   explainability?: boolean;
   /** Candidate entity IDs for affinity evaluation (filter.results.entities) */
   resultEntityIds?: string[];
+  /** Optional per-call timeout override (ms) */
+  timeoutMs?: number;
 }
 
 export class QlooService {
@@ -83,7 +85,7 @@ export class QlooService {
     }
     if (params.take) qs.set("take", String(params.take));
 
-    const raw = await this.request(`/v2/insights?${qs.toString()}`);
+    const raw = await this.request(`/v2/insights?${qs.toString()}`, params.timeoutMs);
     return {
       entities: normalizeQlooEntities(raw),
       tags: extractTagNames(raw),
@@ -123,7 +125,7 @@ export class QlooService {
     }
   }
 
-  private async request(pathWithQuery: string): Promise<unknown> {
+  private async request(pathWithQuery: string, timeoutMs?: number): Promise<unknown> {
     if (!this.apiKey?.trim()) {
       throw new QlooClientError(
         "QLOO_API_KEY is not configured. Set it in .env.local or run `qloo setup --qloo`.",
@@ -132,7 +134,8 @@ export class QlooService {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const budget = timeoutMs ?? this.timeoutMs;
+    const timer = setTimeout(() => controller.abort(), budget);
 
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${pathWithQuery}`, {

@@ -1,4 +1,9 @@
-import { normalizeExplainability } from "@/lib/qloo/explainability";
+import {
+  normalizeAggregateExplainability,
+  normalizeCandidateExplainability,
+  type AggregateExplainability,
+  type CandidateExplainability,
+} from "@/lib/qloo/explainability";
 import type { QlooService } from "@/lib/qloo/client";
 import {
   domainFromCatalogueCategory,
@@ -20,11 +25,17 @@ export interface NativeRankResult {
   warnings: string[];
   indexedCandidateCount: number;
   returnedCandidateCount: number;
+  /** Result-set explainability — not candidate-specific */
+  aggregateExplainability?: AggregateExplainability;
+  /** Wall time for native Insights call(s) */
+  elapsedMs?: number;
 }
 
 /**
  * Path A — evaluate catalogue entries that have verified Qloo entity IDs
  * via Insights `filter.results.entities` (+ optional explainability).
+ *
+ * Ranking uses `entity.query.affinity` when present — never `popularity`.
  */
 export async function rankQlooIndexedCandidates(args: {
   qloo: QlooService;
@@ -35,6 +46,7 @@ export async function rankQlooIndexedCandidates(args: {
   const { qloo, profile, entries } = args;
   const limit = args.limit ?? 3;
   const warnings: string[] = [];
+  const started = Date.now();
 
   const indexed = entries.filter((e) => e.qlooEntityId && e.qlooEntityType);
   if (indexed.length === 0) {
@@ -43,6 +55,7 @@ export async function rankQlooIndexedCandidates(args: {
       warnings: ["No catalogue entries carry verified Qloo entity IDs."],
       indexedCandidateCount: 0,
       returnedCandidateCount: 0,
+      elapsedMs: Date.now() - started,
     };
   }
 
@@ -52,6 +65,7 @@ export async function rankQlooIndexedCandidates(args: {
       warnings: ["Native candidate ranking skipped — no resolved Search entities."],
       indexedCandidateCount: indexed.length,
       returnedCandidateCount: 0,
+      elapsedMs: Date.now() - started,
     };
   }
 
@@ -69,7 +83,9 @@ export async function rankQlooIndexedCandidates(args: {
   );
 
   const scored: Recommendation[] = [];
+  let aggregateExplainability: AggregateExplainability | undefined;
 
+  // One Insights call per filter.type group (bounded — typically a single place group).
   for (const [filterType, group] of byType) {
     try {
       const result = await qloo.getInsights({
@@ -78,20 +94,24 @@ export async function rankQlooIndexedCandidates(args: {
         resultEntityIds: group.map((e) => e.qlooEntityId!),
         explainability: true,
         take: Math.min(group.length, 8),
+        timeoutMs: 20_000,
       });
 
       const byId = new Map(result.entities.map((e) => [e.id.toLowerCase(), e]));
-      const topExpl = normalizeExplainability(result.raw);
+      const aggregate = normalizeAggregateExplainability(result.raw);
+      if (!aggregateExplainability && (aggregate.available || aggregate.warning)) {
+        aggregateExplainability = aggregate;
+      }
 
       for (const entry of group) {
         const hit = byId.get(entry.qlooEntityId!.toLowerCase());
         if (!hit) continue;
 
-        const entityExpl = normalizeExplainability(hit.raw ?? hit);
-        const expl = entityExpl.available ? entityExpl : topExpl;
+        // Candidate-only explainability — never fall back to aggregate contributions.
+        const candidateExpl = normalizeCandidateExplainability(hit.raw ?? hit);
         const affinity =
-          typeof hit.popularity === "number" && !Number.isNaN(hit.popularity)
-            ? hit.popularity
+          typeof hit.affinity === "number" && !Number.isNaN(hit.affinity)
+            ? hit.affinity
             : undefined;
 
         scored.push(
@@ -99,7 +119,11 @@ export async function rankQlooIndexedCandidates(args: {
             entry,
             hit,
             affinity,
-            explainability: expl,
+            popularity:
+              typeof hit.popularity === "number" && !Number.isNaN(hit.popularity)
+                ? hit.popularity
+                : undefined,
+            candidateExplainability: candidateExpl,
             profile,
             sourceDomains,
           }),
@@ -111,18 +135,25 @@ export async function rankQlooIndexedCandidates(args: {
     }
   }
 
-  scored.sort((a, b) => {
-    const na = a.qlooNativeAffinity ?? 0;
-    const nb = b.qlooNativeAffinity ?? 0;
-    if (nb !== na) return nb - na;
-    return a.entry.name.localeCompare(b.entry.name);
-  });
+  // Sort by true affinity when present; do not use popularity as a stand-in.
+  const withAffinity = scored.filter((r) => r.qlooNativeAffinity != null);
+  const withoutAffinity = scored.filter((r) => r.qlooNativeAffinity == null);
+  withAffinity.sort((a, b) => (b.qlooNativeAffinity ?? 0) - (a.qlooNativeAffinity ?? 0));
+  withoutAffinity.sort((a, b) => a.entry.name.localeCompare(b.entry.name));
+  if (withoutAffinity.length > 0) {
+    warnings.push(
+      `${withoutAffinity.length} native candidate(s) lacked query.affinity — retained without numeric affinity sort.`,
+    );
+  }
+  const ordered = [...withAffinity, ...withoutAffinity];
 
   return {
-    recommendations: scored.slice(0, limit),
+    recommendations: ordered.slice(0, limit),
     warnings,
     indexedCandidateCount: indexed.length,
     returnedCandidateCount: scored.length,
+    aggregateExplainability,
+    elapsedMs: Date.now() - started,
   };
 }
 
@@ -130,13 +161,14 @@ function buildNativeRecommendation(args: {
   entry: CatalogueEntry;
   hit: QlooEntity;
   affinity?: number;
-  explainability: ReturnType<typeof normalizeExplainability>;
+  popularity?: number;
+  candidateExplainability: CandidateExplainability;
   profile: TasteProfile;
   sourceDomains: CulturalDomain[];
 }): Recommendation {
-  const { entry, hit, affinity, explainability, profile, sourceDomains } = args;
+  const { entry, hit, affinity, popularity, candidateExplainability, profile, sourceDomains } =
+    args;
   const resultDomain = domainFromCatalogueCategory(entry.category);
-  // Prefer signal→catalogue domain change (e.g. music tastes → place/venue)
   const established = hasTraceableDomainChange(sourceDomains, resultDomain);
 
   const contributions: MatchContribution[] = [
@@ -150,17 +182,19 @@ function buildNativeRecommendation(args: {
   ];
 
   const nameById = new Map(profile.resolvedEntities.map((e) => [e.id.toLowerCase(), e.name]));
-  for (const c of explainability.contributions.slice(0, 6)) {
-    const entityName =
-      (c.entityId && nameById.get(c.entityId.toLowerCase())) ||
-      profile.resolvedEntities[Number(c.key)]?.name;
-    contributions.push({
-      kind: "qloo_explainability",
-      label: entityName ?? c.entityId ?? `input:${c.key}`,
-      id: c.entityId,
-      points: 0,
-      qlooScore: c.score,
-    });
+  if (candidateExplainability.available) {
+    for (const c of candidateExplainability.contributions.slice(0, 6)) {
+      const entityName =
+        (c.entityId && nameById.get(c.entityId.toLowerCase())) ||
+        profile.resolvedEntities[Number(c.key)]?.name;
+      contributions.push({
+        kind: "qloo_explainability",
+        label: entityName ?? c.entityId ?? `input:${c.key}`,
+        id: c.entityId,
+        points: 0,
+        qlooScore: c.score,
+      });
+    }
   }
 
   const evidence: TasteEvidence[] = [
@@ -168,14 +202,17 @@ function buildNativeRecommendation(args: {
       source: "qloo_insights",
       entityId: hit.id,
       entityName: hit.name,
-      detail: `Qloo Insights evaluated this catalogue entry as a candidate (filter.results.entities)${
-        affinity != null ? ` with native affinity ${affinity.toFixed(3)}` : ""
-      }.`,
+      detail:
+        affinity != null
+          ? `Qloo Insights candidate (filter.results.entities) with query.affinity ${affinity.toFixed(3)}${
+              popularity != null ? ` (popularity ${popularity.toFixed(3)} is separate)` : ""
+            }.`
+          : `Qloo Insights returned this candidate via filter.results.entities; query.affinity was not present — no numeric native rank advertised.`,
     },
   ];
 
-  if (explainability.available) {
-    for (const c of explainability.contributions.slice(0, 4)) {
+  if (candidateExplainability.available) {
+    for (const c of candidateExplainability.contributions.slice(0, 4)) {
       const entityName =
         (c.entityId && nameById.get(c.entityId.toLowerCase())) ||
         profile.resolvedEntities[Number(c.key)]?.name;
@@ -183,15 +220,15 @@ function buildNativeRecommendation(args: {
         source: "qloo_insights",
         entityId: c.entityId,
         entityName,
-        detail: `Qloo explainability: input “${entityName ?? c.key}” contributed${
+        detail: `Candidate explainability: input “${entityName ?? c.key}” contributed${
           c.score != null ? ` (score ${c.score.toFixed(2)})` : ""
         }.`,
       });
     }
-  } else if (explainability.warning) {
+  } else if (candidateExplainability.warning) {
     evidence.push({
       source: "qloo_insights",
-      detail: `Qloo explainability unavailable: ${explainability.warning}`,
+      detail: `Candidate explainability warning: ${candidateExplainability.warning}`,
     });
   }
 
@@ -212,9 +249,12 @@ function buildNativeRecommendation(args: {
     .slice(0, 3)
     .join(", ");
 
-  const explanation = established
-    ? `You selected ${interests}. Qloo Insights ranked “${hit.name}” among your candidate affinities across cultural domains — Bragi surfaces the matching Medellín ${entry.kind === "creator" ? "creator" : "place"} with that native evidence.`
-    : `You selected ${interests}. Qloo Insights returned a native affinity for “${hit.name}” among verified candidates. This is Qloo-backed ranking, not a Bragi keyword score.`;
+  const explanation =
+    affinity != null
+      ? established
+        ? `You selected ${interests}. Qloo Insights scored “${hit.name}” with contextual affinity ${affinity.toFixed(2)} across cultural domains — Bragi surfaces the matching Medellín ${entry.kind === "creator" ? "creator" : "place"}.`
+        : `You selected ${interests}. Qloo Insights scored “${hit.name}” with contextual affinity ${affinity.toFixed(2)}. This is Qloo-backed ranking (not popularity, not a Bragi keyword score).`
+      : `You selected ${interests}. Qloo Insights returned “${hit.name}” as a candidate for your signals. Contextual affinity was not provided for this entity, so Bragi does not invent a numeric native score.`;
 
   return {
     entry,
@@ -223,9 +263,10 @@ function buildNativeRecommendation(args: {
     judgeExplanation: [
       `path=qloo_native`,
       `strength=${evidenceStrength}`,
-      `nativeAffinity=${affinity ?? "n/a"}`,
+      `query.affinity=${affinity ?? "n/a"}`,
+      `popularity=${popularity ?? "n/a"}`,
       `domainChange=${established}`,
-      `explainability=${explainability.available}`,
+      `candidateExplainability=${candidateExplainability.available}`,
       `qlooId=${hit.id}`,
     ].join("; "),
     evidence,
@@ -242,9 +283,10 @@ function buildNativeRecommendation(args: {
     rankingPath: "qloo_native",
     qlooNativeAffinity: affinity,
     qlooExplainability: {
-      available: explainability.available,
-      warning: explainability.warning,
-      contributions: explainability.contributions.map((c) => ({
+      scope: "candidate",
+      available: candidateExplainability.available,
+      warning: candidateExplainability.warning,
+      contributions: candidateExplainability.contributions.map((c) => ({
         key: c.key,
         entityId: c.entityId,
         entityName:

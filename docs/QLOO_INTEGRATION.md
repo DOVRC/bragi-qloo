@@ -117,7 +117,9 @@ Entities include names + popularity; tags nest under properties (`name` + `urn:t
 - Typed Search filters can degrade precision for some names (Ghibli).
 - Insights latency/timeouts occur; client timeout is 45s; agent continues with partial evidence.
 - Catalogue matching (Path B) is application-derived overlap against Qloo names/tags.
-- Path A (when catalogue rows carry verified Qloo entity IDs) uses Insights `filter.results.entities` + optional `feature.explainability` — see [`QLOO_NATIVE_VALIDATION.md`](QLOO_NATIVE_VALIDATION.md).
+- Path A (verified Medellín Qloo place IDs only) uses Insights `filter.results.entities` + `feature.explainability`.
+- Contextual ranking field is **`entity.query.affinity`** — never `popularity` (they diverge on live responses).
+- Candidate explainability ≠ top-level aggregate explainability — see [`QLOO_NATIVE_VALIDATION.md`](QLOO_NATIVE_VALIDATION.md).
 - Qloo affinities are **aggregate** taste correlations, not proof of an individual’s preferences.
 - `cross_domain_affinity` requires a traceable domain change; otherwise use `qloo_backed_affinity`.
 

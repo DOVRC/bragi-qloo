@@ -35,7 +35,13 @@ export interface QlooEntity {
   id: string;
   name: string;
   type?: string;
+  /** Global popularity percentile from Qloo — NOT contextual affinity */
   popularity?: number;
+  /**
+   * Contextual Insights affinity toward input signals when present
+   * (observed on hackathon API as `entity.query.affinity`).
+   */
+  affinity?: number;
   properties?: Record<string, unknown>;
   raw?: unknown;
 }
@@ -137,16 +143,31 @@ export interface MatchContribution {
 /** Ranking provenance — never treat Path B scores as Path A affinities. */
 export type RankingPath = "qloo_native" | "bragi_catalogue";
 
-export interface QlooExplainabilitySummary {
+export interface ExplainabilityContributionView {
+  key: string;
+  entityId?: string;
+  entityName?: string;
+  score?: number;
+}
+
+/** Per-recommendation explainability from that entity's `query.explainability`. */
+export interface CandidateExplainability {
+  scope: "candidate";
   available: boolean;
   warning?: string;
-  contributions: Array<{
-    key: string;
-    entityId?: string;
-    entityName?: string;
-    score?: number;
-  }>;
+  contributions: ExplainabilityContributionView[];
 }
+
+/** Top-level Insights `query.explainability` — average influence across the result set. */
+export interface AggregateExplainability {
+  scope: "aggregate";
+  available: boolean;
+  warning?: string;
+  contributions: ExplainabilityContributionView[];
+}
+
+/** @deprecated Prefer CandidateExplainability — kept as alias for card props */
+export type QlooExplainabilitySummary = CandidateExplainability;
 
 export interface Recommendation {
   entry: CatalogueEntry;
@@ -174,8 +195,10 @@ export interface Recommendation {
    * Only set for rankingPath=qloo_native — not comparable to `score`.
    */
   qlooNativeAffinity?: number;
-  /** Sanitized Qloo explainability for the Why step */
-  qlooExplainability?: QlooExplainabilitySummary;
+  /** Candidate-specific Qloo explainability for the Why step (never aggregate) */
+  qlooExplainability?: CandidateExplainability;
+  /** Optional result-set explainability (clearly scoped aggregate) */
+  qlooAggregateExplainability?: AggregateExplainability;
   /** Whether a true domain change was established for cross-domain labeling */
   domainChangeEstablished?: boolean;
 }

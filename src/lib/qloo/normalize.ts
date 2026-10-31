@@ -30,9 +30,14 @@ function normalizeOne(item: unknown): QlooEntity | null {
   if (!id || !name) return null;
 
   const type = pickString(e.type) ?? pickString(e.subtype);
-  const popularity =
-    typeof e.popularity === "number"
-      ? e.popularity
+
+  // Popularity and affinity are distinct Qloo fields — never conflate them.
+  const popularity = typeof e.popularity === "number" ? e.popularity : undefined;
+  const query =
+    e.query && typeof e.query === "object" ? (e.query as Record<string, unknown>) : undefined;
+  const affinity =
+    typeof query?.affinity === "number"
+      ? query.affinity
       : typeof e.affinity === "number"
         ? e.affinity
         : undefined;
@@ -42,7 +47,7 @@ function normalizeOne(item: unknown): QlooEntity | null {
       ? (e.properties as Record<string, unknown>)
       : undefined;
 
-  return { id, name, type, popularity, properties, raw: item };
+  return { id, name, type, popularity, affinity, properties, raw: item };
 }
 
 function pickString(value: unknown): string | undefined {
