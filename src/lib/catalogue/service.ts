@@ -289,6 +289,18 @@ function scoreEntry(
     return emptyRecommendation(entry);
   }
 
+  // Creators/projects need Search, Insights *entity*, or user-signal support —
+  // Insights tags alone are too weak (generic tag soup → genre bleed).
+  const kind = entry.kind ?? "venue";
+  if (kind === "creator" || kind === "project") {
+    const hasInsightsEntity = contributions.some((c) => c.kind === "qloo_insights_entity");
+    const tagOnlySupport =
+      qlooSearchPoints === 0 && !hasInsightsEntity && userSignalPoints === 0;
+    if (tagOnlySupport) {
+      return emptyRecommendation(entry);
+    }
+  }
+
   evidence.push({
     source: "catalogue",
     detail:
