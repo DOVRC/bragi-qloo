@@ -1,5 +1,6 @@
 import { CatalogueService } from "@/lib/catalogue/service";
 import { QlooService } from "@/lib/qloo/client";
+import { mergeRankingPaths, rankQlooIndexedCandidates } from "@/lib/qloo/nativeRanking";
 import { resolveSignalEntity } from "@/lib/resolve";
 import { parseDiscoverInput } from "@/lib/signals";
 import { buildDiscoveryTrace, sanitizeEntity } from "@/lib/agent/trace";
@@ -300,25 +301,60 @@ export class DiscoveryAgent {
       );
 
       setStep(steps, "catalogue", "running");
-      let recommendations = this.catalogue.match(profile, 3, {
+
+      // Path A — Qloo-native candidate ranking for catalogue rows with verified entity IDs
+      let nativeRecs: Awaited<ReturnType<typeof rankQlooIndexedCandidates>>["recommendations"] =
+        [];
+      if (!this.sampleDataMode && this.qloo.hasCredentials() && profile.resolvedEntities.length) {
+        try {
+          const native = await rankQlooIndexedCandidates({
+            qloo: this.qloo,
+            profile,
+            entries: this.catalogue.list({
+              city: profile.city,
+              budgetCop: profile.budgetCop,
+              includeDemonstration: false,
+            }),
+            limit: 3,
+          });
+          nativeRecs = native.recommendations;
+          warnings.push(...native.warnings);
+          if (native.returnedCandidateCount > 0) {
+            warnings.push(
+              `Qloo-native path ranked ${native.returnedCandidateCount}/${native.indexedCandidateCount} indexed candidates.`,
+            );
+          }
+        } catch (err) {
+          warnings.push(
+            `Qloo-native candidate ranking failed; continuing with Bragi catalogue matching. (${
+              err instanceof Error ? err.message : "unknown"
+            })`,
+          );
+        }
+      }
+
+      // Path B — Bragi evidence-aware matching (includes creators without Qloo IDs)
+      let catalogueRecs = this.catalogue.match(profile, 5, {
         includeDemonstration: this.sampleDataMode,
       });
-      if (recommendations.length === 0 && !this.sampleDataMode) {
-        recommendations = this.catalogue.match(profile, 3, {
+      if (catalogueRecs.length === 0 && !this.sampleDataMode) {
+        catalogueRecs = this.catalogue.match(profile, 5, {
           includeDemonstration: true,
         });
-        if (recommendations.length > 0) {
+        if (catalogueRecs.length > 0) {
           warnings.push(
             "Only demonstration catalogue entries met the evidence threshold; verified venues did not.",
           );
         }
       }
+
+      const recommendations = mergeRankingPaths(nativeRecs, catalogueRecs, 3);
       setStep(
         steps,
         "catalogue",
         "done",
         recommendations.length
-          ? `${recommendations.length} match(es) above evidence threshold`
+          ? `${recommendations.length} match(es) · native=${nativeRecs.length} · catalogue=${catalogueRecs.length}`
           : "No catalogue entry met the evidence threshold",
       );
 
@@ -329,12 +365,13 @@ export class DiscoveryAgent {
           "No defensible local matches for the current Qloo evidence and constraints. Try different signals, raise budget, or broaden tastes.",
         );
       } else {
+        const nativeBacked = recommendations.filter((r) => r.rankingPath === "qloo_native").length;
         const insightBacked = recommendations.filter((r) => r.qlooInsightsPoints > 0).length;
         setStep(
           steps,
           "rank",
           "done",
-          `Top: ${recommendations.map((r) => r.entry.name).join(" · ")} · ${insightBacked}/${recommendations.length} Insights-backed`,
+          `Top: ${recommendations.map((r) => r.entry.name).join(" · ")} · native=${nativeBacked} · Insights-overlap=${insightBacked}`,
         );
       }
 

@@ -46,6 +46,12 @@ export function RecommendationCard({
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-bragi-navy/55">
           <MapPin className="inline h-3.5 w-3.5" aria-hidden />
           {entry.neighborhood}, {entry.city}
+          {entry.discipline && (
+            <>
+              {" "}
+              · {entry.discipline}
+            </>
+          )}
           {entry.typicalCostCop != null && (
             <>
               {" "}
@@ -55,25 +61,46 @@ export function RecommendationCard({
           )}
         </p>
 
-        {entry.provenance === "demonstration" ? (
-          <p className="mt-3 inline-block rounded-full border border-amber-500/35 bg-amber-50 px-2.5 py-1 text-xs text-amber-900">
-            Demonstration catalogue profile
-          </p>
-        ) : (
-          <p className="mt-3 inline-block rounded-full border border-emerald-600/20 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-900">
-            Verified public venue / program
-          </p>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {entry.provenance === "demonstration" ? (
+            <p className="inline-block rounded-full border border-amber-500/35 bg-amber-50 px-2.5 py-1 text-xs text-amber-900">
+              Demonstration catalogue profile
+            </p>
+          ) : entry.kind === "creator" ? (
+            <p className="inline-block rounded-full border border-emerald-600/20 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-900">
+              Independent creator
+            </p>
+          ) : entry.kind === "project" ? (
+            <p className="inline-block rounded-full border border-emerald-600/20 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-900">
+              Creative project / space
+            </p>
+          ) : (
+            <p className="inline-block rounded-full border border-emerald-600/20 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-900">
+              Verified public venue / program
+            </p>
+          )}
+          {recommendation.rankingPath === "qloo_native" ? (
+            <p className="inline-block rounded-full border border-bragi-accent/30 bg-bragi-mist/50 px-2.5 py-1 text-xs text-bragi-navy">
+              Ranked by Qloo Insights
+            </p>
+          ) : (
+            <p className="inline-block rounded-full border border-bragi-ink/10 bg-bragi-paper/80 px-2.5 py-1 text-xs text-bragi-navy/70">
+              Bragi catalogue match
+            </p>
+          )}
+        </div>
 
         <p className="mt-4 text-[15px] leading-relaxed text-bragi-navy/80">{entry.summary}</p>
 
+        <ProvenanceBreakdown recommendation={recommendation} />
+
         <div className="mt-4 rounded-2xl bg-bragi-paper/70 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-bragi-accent">
-            Why this place fits your taste
+            Why this {entry.kind === "creator" ? "creator" : "place"} fits your taste
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-bragi-navy/75">{explanation}</p>
           <p className="mt-2 text-[11px] text-bragi-navy/40">
-            Aggregate cultural affinities — not a personal prediction.
+            Aggregate cultural affinities — not a personal prediction. Bragi scores are not Qloo scores.
           </p>
         </div>
 
@@ -139,7 +166,7 @@ export function RecommendationCard({
               rel="noopener noreferrer"
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-bragi-navy px-4 text-sm font-semibold text-bragi-cream transition duration-200 ease-out hover:bg-bragi-ink"
             >
-              Official site
+              {entry.kind === "creator" ? "Public profile" : "Official site"}
               <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           )}
@@ -149,10 +176,83 @@ export function RecommendationCard({
   );
 }
 
+function ProvenanceBreakdown({ recommendation }: { recommendation: Recommendation }) {
+  const { entry } = recommendation;
+  const interests = recommendation.contributions
+    .filter((c) => c.kind === "user_signal")
+    .map((c) => c.label);
+  const qlooBits = recommendation.contributions.filter(
+    (c) =>
+      c.kind === "qloo_search" ||
+      c.kind === "qloo_insights_entity" ||
+      c.kind === "qloo_insights_tag" ||
+      c.kind === "qloo_native_affinity" ||
+      c.kind === "qloo_explainability",
+  );
+  const expl = recommendation.qlooExplainability;
+
+  return (
+    <div className="mt-4 grid gap-2 rounded-2xl border border-bragi-ink/8 bg-white/70 p-3 text-xs text-bragi-navy/70 sm:grid-cols-2">
+      <div>
+        <p className="font-semibold uppercase tracking-wider text-bragi-navy/40">Your interests</p>
+        <p className="mt-1">
+          {interests.length
+            ? interests.slice(0, 4).join(" · ")
+            : "Used as signals for Search / Insights (see Why panel)."}
+        </p>
+      </div>
+      <div>
+        <p className="font-semibold uppercase tracking-wider text-bragi-navy/40">
+          What Qloo discovered
+        </p>
+        <p className="mt-1">
+          {qlooBits.length
+            ? qlooBits
+                .slice(0, 4)
+                .map((c) => c.label)
+                .join(" · ")
+            : "No Qloo contribution on this card."}
+        </p>
+        {expl?.available && expl.contributions.some((c) => c.score != null) && (
+          <p className="mt-1 text-[11px] text-bragi-navy/45">
+            Native explainability scores from Qloo (0–1), not Bragi points.
+          </p>
+        )}
+      </div>
+      <div>
+        <p className="font-semibold uppercase tracking-wider text-bragi-navy/40">What Bragi matched</p>
+        <p className="mt-1">
+          {entry.name}
+          {entry.kind === "creator"
+            ? " (independent creator catalogue)"
+            : entry.qlooEntityId
+              ? " (catalogue + Qloo entity id)"
+              : " (local catalogue)"}
+        </p>
+      </div>
+      <div>
+        <p className="font-semibold uppercase tracking-wider text-bragi-navy/40">Why selected</p>
+        <p className="mt-1">
+          {recommendation.rankingPath === "qloo_native"
+            ? `Qloo Insights candidate ranking${
+                recommendation.qlooNativeAffinity != null
+                  ? ` · affinity ${recommendation.qlooNativeAffinity.toFixed(2)}`
+                  : ""
+              }`
+            : `Bragi evidence-aware catalogue score (${recommendation.score.toFixed(1)} pts)`}
+          {recommendation.domainChangeEstablished ? " · domain change established" : ""}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function strengthLabel(s: EvidenceStrength): string {
   switch (s) {
     case "cross_domain_affinity":
       return "Cross-domain affinity";
+    case "qloo_backed_affinity":
+      return "Qloo-backed affinity";
     case "direct_taste_match":
       return "Direct taste match";
     case "catalogue_supported":

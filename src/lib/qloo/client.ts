@@ -23,6 +23,10 @@ export interface InsightsParams {
   signalTags?: string[];
   locationQuery?: string;
   take?: number;
+  /** When true, request query.explainability metadata */
+  explainability?: boolean;
+  /** Candidate entity IDs for affinity evaluation (filter.results.entities) */
+  resultEntityIds?: string[];
 }
 
 export class QlooService {
@@ -70,6 +74,12 @@ export class QlooService {
     }
     if (params.locationQuery) {
       qs.set("filter.location.query", params.locationQuery);
+    }
+    if (params.resultEntityIds?.length) {
+      qs.set("filter.results.entities", params.resultEntityIds.join(","));
+    }
+    if (params.explainability) {
+      qs.set("feature.explainability", "true");
     }
     if (params.take) qs.set("take", String(params.take));
 

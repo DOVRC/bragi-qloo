@@ -1,4 +1,11 @@
 import { getCatalogue } from "@/data/catalogue";
+import {
+  domainFromCatalogueCategory,
+  domainFromQlooType,
+  domainsFromSignals,
+  hasTraceableDomainChange,
+  type CulturalDomain,
+} from "@/lib/domains";
 import { humanizeTagId } from "@/lib/qloo/normalize";
 import type {
   CatalogueEntry,
@@ -257,10 +264,28 @@ function scoreEntry(
         : "Catalogue provenance: verified public venue/program.",
   });
 
+  const sourceDomains = domainsFromSignals(
+    profile.signals,
+    profile.resolvedEntities.map((e) => e.type),
+  );
+  // Domains of Insights entities that actually contributed
+  const insightDomains: CulturalDomain[] = [];
+  for (const c of contributions) {
+    if (c.kind !== "qloo_insights_entity" || !c.id) continue;
+    const ent = profile.affinityEntities.find((e) => e.id === c.id);
+    insightDomains.push(domainFromQlooType(ent?.type));
+  }
+  const resultDomain = domainFromCatalogueCategory(entry.category);
+  const domainChangeEstablished = hasTraceableDomainChange(
+    [...sourceDomains, ...insightDomains],
+    resultDomain,
+  );
+
   const evidenceStrength = classifyStrength({
     qlooSearchPoints,
     qlooInsightsPoints,
     userSignalPoints,
+    domainChangeEstablished,
   });
 
   const explanation = buildConsumerExplanation(entry, profile, contributions, evidenceStrength);
@@ -271,6 +296,7 @@ function scoreEntry(
     matchedTokens,
     evidenceStrength,
     { qlooSearchPoints, qlooInsightsPoints, userSignalPoints },
+    domainChangeEstablished,
   );
 
   return {
@@ -290,6 +316,8 @@ function scoreEntry(
       "Adjust budget to include larger venues or focus on low-cost programs.",
       "Try the other example journey to compare discovered connections.",
     ],
+    rankingPath: "bragi_catalogue",
+    domainChangeEstablished,
   };
 }
 
@@ -307,15 +335,29 @@ function emptyRecommendation(entry: CatalogueEntry): Recommendation {
     qlooSearchPoints: 0,
     userSignalPoints: 0,
     refinementSuggestions: [],
+    rankingPath: "bragi_catalogue",
   };
 }
 
+/**
+ * Strength labels — cross_domain requires a traceable domain change,
+ * not merely a numeric Insights point threshold.
+ */
 export function classifyStrength(parts: {
   qlooSearchPoints: number;
   qlooInsightsPoints: number;
   userSignalPoints: number;
+  domainChangeEstablished?: boolean;
+  hasQlooNativeAffinity?: boolean;
 }): EvidenceStrength {
-  if (parts.qlooInsightsPoints >= 5) return "cross_domain_affinity";
+  if (parts.hasQlooNativeAffinity && parts.domainChangeEstablished) {
+    return "cross_domain_affinity";
+  }
+  if (parts.hasQlooNativeAffinity) return "qloo_backed_affinity";
+  if (parts.qlooInsightsPoints >= 5 && parts.domainChangeEstablished) {
+    return "cross_domain_affinity";
+  }
+  if (parts.qlooInsightsPoints >= 5) return "qloo_backed_affinity";
   if (parts.qlooSearchPoints >= 8) return "direct_taste_match";
   if (parts.qlooSearchPoints > 0 || parts.qlooInsightsPoints > 0) return "catalogue_supported";
   return "limited_evidence";
@@ -341,10 +383,13 @@ function buildConsumerExplanation(
     .slice(0, 2);
 
   if (strength === "cross_domain_affinity" && insights.length > 0) {
-    return `You selected ${interests}. Qloo returned related affinities such as ${insights.join(", ")}, which Bragi matched to ${entry.name}'s cultural programming.`;
+    return `You selected ${interests}. Qloo returned related affinities such as ${insights.join(", ")}, which Bragi matched to ${entry.name} across cultural domains (Qloo evidence + Bragi catalogue).`;
+  }
+  if (strength === "qloo_backed_affinity" && insights.length > 0) {
+    return `You selected ${interests}. Qloo Insights affinities such as ${insights.join(", ")} support this match. Bragi applied catalogue evidence — this is Qloo-backed affinity, not a claimed cross-domain leap.`;
   }
   if (strength === "direct_taste_match" && searchHits.length > 0) {
-    return `You selected ${interests}. Qloo resolved ${searchHits.join(" and ")}, which align with this venue's cultural hooks in Bragi's Medellín catalogue.`;
+    return `You selected ${interests}. Qloo resolved ${searchHits.join(" and ")}, which align with this entry's cultural hooks in Bragi's Medellín catalogue.`;
   }
   if (strength === "catalogue_supported") {
     return `${entry.name} overlaps your interests (${interests}) with partial Qloo support. Treat this as a catalogue-assisted suggestion, not a personal prediction.`;
@@ -359,6 +404,7 @@ function buildJudgeExplanation(
   matchedTokens: Set<string>,
   strength: EvidenceStrength,
   points: { qlooSearchPoints: number; qlooInsightsPoints: number; userSignalPoints: number },
+  domainChangeEstablished: boolean,
 ): string {
   const qlooEntities = unique(
     evidence
@@ -367,7 +413,9 @@ function buildJudgeExplanation(
       .filter((n): n is string => Boolean(n)),
   );
   return [
+    `path=bragi_catalogue`,
     `strength=${strength}`,
+    `domainChange=${domainChangeEstablished}`,
     `points search=${points.qlooSearchPoints} insights=${points.qlooInsightsPoints} user=${points.userSignalPoints}`,
     `entities=${qlooEntities.slice(0, 5).join("|") || "none"}`,
     `tokens=${[...matchedTokens].slice(0, 6).join("|") || "none"}`,

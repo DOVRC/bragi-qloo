@@ -47,6 +47,7 @@ canister_ids.json
 scripts/_promote-root.ps1
 scripts/_secret-scan.mjs
 scripts/_push-qloo-prod-env.mjs
+scripts/_probe-explainability.mjs
 
 # visual QA artifacts
 qa-artifacts/
