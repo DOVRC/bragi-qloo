@@ -1,6 +1,7 @@
 import type {
   CulturalSignal,
   CulturalSignalKind,
+  DiscoveryIntent,
   DiscoverRequest,
   QlooEntityType,
 } from "@/lib/types";
@@ -84,7 +85,9 @@ export function classifySignal(raw: string): CulturalSignal {
     }
   }
 
-  return { raw, kind, inferredType: "urn:entity:artist" };
+  // Unknown named entities: leave type unset so Search runs untyped first.
+  // Do not default to music artists — Qloo entity types should come from resolution.
+  return { raw, kind };
 }
 
 function extractQuotedOrListed(query: string): string[] {
@@ -154,6 +157,14 @@ export function validateDiscoverRequest(body: unknown): {
 
   const city = typeof b.city === "string" ? b.city.trim() : undefined;
 
+  const intentRaw = typeof b.intent === "string" ? b.intent.trim().toLowerCase() : undefined;
+  const intent: DiscoveryIntent | undefined =
+    intentRaw === "creators" || intentRaw === "places" || intentRaw === "mixed"
+      ? intentRaw
+      : intentRaw === "surprise" || intentRaw === "surprise_me" || intentRaw === "surprise-me"
+        ? "mixed"
+        : undefined;
+
   return {
     ok: true,
     value: {
@@ -161,6 +172,7 @@ export function validateDiscoverRequest(body: unknown): {
       signals,
       city,
       budgetCop,
+      intent,
     },
   };
 }

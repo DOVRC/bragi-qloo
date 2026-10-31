@@ -92,13 +92,14 @@ Entities include names + popularity; tags nest under properties (`name` + `urn:t
 
 ## Bragi usage pattern (live)
 
-1. Parse signals → `named_entity` vs `genre_or_theme`.
-2. Resolve via Search with name-match + typed→untyped fallback (`resolve.ts`).
+1. Parse signals → `named_entity` vs `genre_or_theme` (unknown named entities stay untyped — no blind artist default).
+2. Resolve via Search with name-match + typed→untyped fallback (`resolve.ts`), bounded parallelism under a **50s** discovery deadline.
 3. Resolve genre tags via `/v2/tags` when needed.
-4. **Conditional** Insights plan (`planInsights`) — not a fixed always-on triple.
+4. **Adaptive** Insights plan (`planInsights`) from resolved Qloo types + signal cues — not “any resolved ⇒ artist”.
 5. Prioritize/caps tags (amenity noise from place Insights).
-6. Match Medellín catalogue (application layer) with evidence threshold; prefer verified entries in live mode.
-7. Never silent-sample on Qloo failure; Insights TIMEOUT continues with partial Search evidence when available.
+6. Dual-path rank: Path A native affinity for indexed places; Path B catalogue evidence (creators/projects). Merge is **intent-aware** (`creators` | `places` | `mixed`) without equating score scales.
+7. Live mode never injects demonstration profiles; Insights TIMEOUT continues with partial Search evidence when available.
+8. `POST /api/discover` accepts optional `intent` for matchmaking slot allocation.
 
 ## Live verification status
 

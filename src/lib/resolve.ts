@@ -63,6 +63,7 @@ export function pickBestEntity(
 export async function resolveSignalEntity(
   qloo: QlooService,
   signal: CulturalSignal,
+  options: { timeoutMs?: number } = {},
 ): Promise<ResolvedSignal> {
   const attempts: Array<{ label: string; types?: QlooEntityType[] }> = [];
 
@@ -72,6 +73,7 @@ export async function resolveSignalEntity(
       attempts.push({ label: `typed-genre:${signal.inferredType}`, types: [signal.inferredType] });
     }
   } else {
+    // Prefer untyped Search when type is unknown — avoid forcing artist filters.
     if (signal.inferredType) {
       attempts.push({
         label: `typed:${signal.inferredType}`,
@@ -88,6 +90,7 @@ export async function resolveSignalEntity(
       query: signal.raw,
       types: attempt.types,
       take: 5,
+      timeoutMs: options.timeoutMs,
     });
     const best = pickBestEntity(signal.raw, found, signal.kind === "genre_or_theme" ? 25 : 40);
     if (best) {

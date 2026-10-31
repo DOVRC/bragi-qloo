@@ -31,6 +31,11 @@ export function RecommendationCard({
         aria-hidden
       >
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_30%,rgba(253,245,235,0.55),transparent_42%),radial-gradient(circle_at_80%_70%,rgba(16,24,40,0.35),transparent_45%)]" />
+        {(entry.kind === "creator" || entry.kind === "project") && (
+          <div className="absolute left-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-bragi-cream/95 font-display text-xl text-bragi-navy shadow-sm">
+            {entry.name.trim().charAt(0).toUpperCase()}
+          </div>
+        )}
         <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3">
           <span className="rounded-full bg-bragi-cream/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-bragi-navy">
             {categoryLabel(entry.category)}
@@ -96,7 +101,13 @@ export function RecommendationCard({
 
         <div className="mt-4 rounded-2xl bg-bragi-paper/70 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-bragi-accent">
-            Why this {entry.kind === "creator" ? "creator" : "place"} fits your taste
+            Why this{" "}
+            {entry.kind === "creator"
+              ? "creator"
+              : entry.kind === "project"
+                ? "creative space"
+                : "place"}{" "}
+            fits your taste
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-bragi-navy/75">{explanation}</p>
           <p className="mt-2 text-[11px] text-bragi-navy/40">

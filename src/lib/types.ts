@@ -23,12 +23,17 @@ export interface CulturalSignal {
   inferredType?: QlooEntityType;
 }
 
+/** User discovery intent — shapes slot allocation, not fabricated scores. */
+export type DiscoveryIntent = "creators" | "places" | "mixed";
+
 export interface DiscoverRequest {
   query: string;
   signals?: string[];
   city?: string;
   budgetCop?: number;
   categories?: CatalogueCategory[];
+  /** Creators / places / surprise-me (mixed). Defaults to mixed. */
+  intent?: DiscoveryIntent;
 }
 
 export interface QlooEntity {

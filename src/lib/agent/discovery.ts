@@ -7,13 +7,22 @@ import { buildDiscoveryTrace, sanitizeEntity } from "@/lib/agent/trace";
 import {
   QlooClientError,
   type AgentStep,
+  type CatalogueKind,
   type DiscoverRequest,
   type DiscoverResponse,
+  type DiscoveryIntent,
   type QlooEntity,
   type QlooEntityType,
   type TasteEvidence,
   type TasteProfile,
 } from "@/lib/types";
+
+/** Stay under Vercel function maxDuration (60s) with headroom for response serialization. */
+export const DISCOVERY_DEADLINE_MS = 50_000;
+const SEARCH_TIMEOUT_MS = 12_000;
+const TAGS_TIMEOUT_MS = 10_000;
+const INSIGHTS_CALL_TIMEOUT_MS = 16_000;
+const NATIVE_RANK_TIMEOUT_MS = 18_000;
 
 export interface DiscoveryAgentOptions {
   qloo?: QlooService;
@@ -53,6 +62,9 @@ export class DiscoveryAgent {
 
     const warnings: string[] = [];
     const mode = this.sampleDataMode ? "sample" : "live";
+    const startedAt = Date.now();
+    const intent: DiscoveryIntent = input.intent ?? "mixed";
+    const remaining = () => DISCOVERY_DEADLINE_MS - (Date.now() - startedAt);
 
     try {
       setStep(steps, "interpret", "running");
@@ -74,7 +86,7 @@ export class DiscoveryAgent {
         steps,
         "interpret",
         "done",
-        `${parsed.signals.length} signal(s) [${parsed.signals.map((s) => s.kind).join(", ")}]; city=${parsed.city}; budget=${parsed.budgetCop ?? "n/a"}`,
+        `${parsed.signals.length} signal(s) [${parsed.signals.map((s) => s.kind).join(", ")}]; city=${parsed.city}; budget=${parsed.budgetCop ?? "n/a"}; intent=${intent}`,
       );
 
       let resolvedEntities: QlooEntity[] = [];
@@ -121,31 +133,52 @@ export class DiscoveryAgent {
         }
 
         setStep(steps, "resolve", "running");
-        for (const signal of parsed.signals.slice(0, 5)) {
-          try {
-            const resolved = await resolveSignalEntity(this.qloo, signal);
-            if (resolved.entity) {
-              resolvedEntities.push(resolved.entity);
-              evidence.push({
-                source: "qloo_search",
-                entityId: resolved.entity.id,
-                entityName: resolved.entity.name,
-                detail: `Mapped “${signal.raw}” → “${resolved.entity.name}” (${resolved.strategy}).`,
-              });
+        const resolveSignals = parsed.signals.slice(0, 5);
+        // Bounded parallelism (chunks of 2) + per-call timeout under the discovery deadline.
+        for (let i = 0; i < resolveSignals.length; i += 2) {
+          if (remaining() < SEARCH_TIMEOUT_MS + 2_000) {
+            warnings.push(
+              "Discovery time budget low — skipped remaining Search resolves (partial results).",
+            );
+            break;
+          }
+          const chunk = resolveSignals.slice(i, i + 2);
+          const settled = await Promise.allSettled(
+            chunk.map((signal) =>
+              resolveSignalEntity(this.qloo, signal, { timeoutMs: SEARCH_TIMEOUT_MS }),
+            ),
+          );
+          for (const item of settled) {
+            if (item.status === "fulfilled") {
+              const resolved = item.value;
+              if (resolved.entity) {
+                resolvedEntities.push(resolved.entity);
+                evidence.push({
+                  source: "qloo_search",
+                  entityId: resolved.entity.id,
+                  entityName: resolved.entity.name,
+                  detail: `Mapped “${resolved.signal.raw}” → “${resolved.entity.name}” (${resolved.strategy}).`,
+                });
+              } else {
+                warnings.push(resolved.warning ?? `Unresolved signal “${resolved.signal.raw}”.`);
+              }
             } else {
-              warnings.push(resolved.warning ?? `Unresolved signal “${signal.raw}”.`);
+              const err = item.reason;
+              if (err instanceof QlooClientError) {
+                if (err.code === "TIMEOUT" || err.code === "FORBIDDEN") {
+                  warnings.push(`Search ${err.code.toLowerCase()}; continuing with partial resolves.`);
+                  continue;
+                }
+                setStep(steps, "resolve", "error", err.message);
+                return {
+                  ok: false,
+                  mode: "live",
+                  error: { code: err.code, message: err.message },
+                  steps,
+                };
+              }
+              throw err;
             }
-          } catch (err) {
-            if (err instanceof QlooClientError) {
-              setStep(steps, "resolve", "error", err.message);
-              return {
-                ok: false,
-                mode: "live",
-                error: { code: err.code, message: err.message },
-                steps,
-              };
-            }
-            throw err;
           }
         }
         resolvedEntities = dedupeEntities(resolvedEntities);
@@ -163,8 +196,14 @@ export class DiscoveryAgent {
         } else {
           setStep(steps, "tags", "running");
           for (const signal of genreSignals.slice(0, 3)) {
+            if (remaining() < TAGS_TIMEOUT_MS + 2_000) {
+              warnings.push("Discovery time budget low — skipped remaining Tags lookups.");
+              break;
+            }
             try {
-              const tags = await this.qloo.searchTags(signal.raw, 5);
+              const tags = await this.qloo.searchTags(signal.raw, 5, {
+                timeoutMs: TAGS_TIMEOUT_MS,
+              });
               for (const tag of tags.slice(0, 3)) {
                 signalTagIds.push(tag.id);
                 affinityTags.push(tag.name.toLowerCase());
@@ -178,6 +217,10 @@ export class DiscoveryAgent {
             } catch (err) {
               if (err instanceof QlooClientError && err.code === "FORBIDDEN") {
                 warnings.push(`Tags search forbidden for “${signal.raw}”; continuing.`);
+                continue;
+              }
+              if (err instanceof QlooClientError && err.code === "TIMEOUT") {
+                warnings.push(`Tags search timed out for “${signal.raw}”; continuing.`);
                 continue;
               }
               if (err instanceof QlooClientError) {
@@ -208,13 +251,17 @@ export class DiscoveryAgent {
             (p) => p.filterType !== "urn:entity:place",
           );
           const executed: string[] = [];
-          // Bound concurrency (max 2) and per-call timeout so the 60s route budget holds.
-          const INSIGHTS_CALL_TIMEOUT_MS = 18_000;
           const chunks: typeof plan[] = [];
           for (let i = 0; i < plan.length; i += 2) chunks.push(plan.slice(i, i + 2));
 
           let fatalInsights: QlooClientError | null = null;
           for (const chunk of chunks) {
+            if (remaining() < INSIGHTS_CALL_TIMEOUT_MS + NATIVE_RANK_TIMEOUT_MS + 3_000) {
+              warnings.push(
+                "Discovery time budget low — skipped remaining exploratory Insights (partial affinities).",
+              );
+              break;
+            }
             const settled = await Promise.allSettled(
               chunk.map((attempt) =>
                 this.qloo.getInsights({
@@ -223,7 +270,7 @@ export class DiscoveryAgent {
                   signalTags: signalTagIds.length ? signalTagIds.slice(0, 5) : undefined,
                   locationQuery: attempt.locationQuery,
                   take: 5,
-                  timeoutMs: INSIGHTS_CALL_TIMEOUT_MS,
+                  timeoutMs: Math.min(INSIGHTS_CALL_TIMEOUT_MS, Math.max(4_000, remaining() - NATIVE_RANK_TIMEOUT_MS - 2_000)),
                 }).then((result) => ({ attempt, result })),
               ),
             );
@@ -326,10 +373,19 @@ export class DiscoveryAgent {
 
       setStep(steps, "catalogue", "running");
 
+      const kindFilter = kindsForIntent(intent);
+
       // Path A — Qloo-native candidate ranking for catalogue rows with verified entity IDs
       let nativeRecs: Awaited<ReturnType<typeof rankQlooIndexedCandidates>>["recommendations"] =
         [];
-      if (!this.sampleDataMode && this.qloo.hasCredentials() && profile.resolvedEntities.length) {
+      const skipNative =
+        intent === "creators" ||
+        remaining() < NATIVE_RANK_TIMEOUT_MS + 2_000 ||
+        this.sampleDataMode ||
+        !this.qloo.hasCredentials() ||
+        profile.resolvedEntities.length === 0;
+
+      if (!skipNative) {
         try {
           const native = await rankQlooIndexedCandidates({
             qloo: this.qloo,
@@ -338,6 +394,7 @@ export class DiscoveryAgent {
               city: profile.city,
               budgetCop: profile.budgetCop,
               includeDemonstration: false,
+              kinds: kindFilter,
             }),
             limit: 3,
           });
@@ -366,24 +423,33 @@ export class DiscoveryAgent {
             })`,
           );
         }
+      } else if (intent === "creators") {
+        warnings.push(
+          "Creators intent — skipped Qloo-native place ranking so independent creators can surface via catalogue evidence.",
+        );
+      } else if (!this.sampleDataMode && remaining() < NATIVE_RANK_TIMEOUT_MS + 2_000) {
+        warnings.push(
+          "Discovery time budget low — skipped Qloo-native ranking; using catalogue matches only.",
+        );
       }
 
-      // Path B — Bragi evidence-aware matching (includes creators without Qloo IDs)
-      let catalogueRecs = this.catalogue.match(profile, 5, {
+      // Path B — Bragi evidence-aware matching (includes creators without Qloo IDs).
+      // Live mode never injects demonstration profiles into recommendations.
+      const catalogueRecs = this.catalogue.match(profile, 6, {
         includeDemonstration: this.sampleDataMode,
+        kinds: kindFilter,
       });
       if (catalogueRecs.length === 0 && !this.sampleDataMode) {
-        catalogueRecs = this.catalogue.match(profile, 5, {
-          includeDemonstration: true,
-        });
-        if (catalogueRecs.length > 0) {
-          warnings.push(
-            "Only demonstration catalogue entries met the evidence threshold; verified venues did not.",
-          );
-        }
+        warnings.push(
+          "No verified catalogue entries met the evidence threshold for this intent — honest empty Path B (demonstration profiles were not injected).",
+        );
       }
 
-      const recommendations = mergeRankingPaths(nativeRecs, catalogueRecs, 3);
+      const recommendations = mergeRankingPaths(nativeRecs, catalogueRecs, {
+        limit: 3,
+        intent,
+      });
+      warnings.push(`Discovery wall time ${Date.now() - startedAt}ms (deadline ${DISCOVERY_DEADLINE_MS}ms).`);
       setStep(
         steps,
         "catalogue",
@@ -439,67 +505,124 @@ export class DiscoveryAgent {
   }
 }
 
-/** Choose Insights calls from intermediate resolution results — not a fixed always-on list. */
+/** Choose Insights domains from resolved Qloo types + signal evidence — not a fixed artist default. */
 export function planInsights(
   signals: ReturnType<typeof parseDiscoverInput>["signals"],
   resolved: QlooEntity[],
   city: string,
 ): InsightPlan[] {
   const plan: InsightPlan[] = [];
-  const kinds = new Set(signals.map((s) => s.kind));
+  const seen = new Set<string>();
+  const push = (item: InsightPlan) => {
+    if (seen.has(item.filterType)) return;
+    seen.add(item.filterType);
+    plan.push(item);
+  };
+
   const text = signals.map((s) => s.raw.toLowerCase()).join(" ");
+  const inferred = signals.map((s) => s.inferredType).filter(Boolean) as QlooEntityType[];
 
-  const hasMusic =
-    /\b(radiohead|jazz|reggaeton|salsa|bunny|balvin|music|rock|hip hop|dance)\b/i.test(text) ||
-    resolved.some((e) => /artist|music/i.test(e.type ?? "") || /radiohead|balvin|bunny|davis|jazz/i.test(e.name));
+  // Adaptive: mirror real resolved entity types first.
+  for (const entity of resolved) {
+    const t = (entity.type ?? "").toLowerCase();
+    if (!t || t.includes("place") || t.includes("locality") || t.includes("destination")) continue;
+    if (t.includes("artist") || t.includes("person")) {
+      push({
+        filterType: "urn:entity:artist",
+        reason: `resolved type ${entity.type} (${entity.name})`,
+      });
+    } else if (t.includes("movie") || t.includes("tv_show") || t.includes("film")) {
+      push({
+        filterType: "urn:entity:movie",
+        reason: `resolved type ${entity.type} (${entity.name})`,
+      });
+    } else if (t.includes("brand")) {
+      push({
+        filterType: "urn:entity:brand",
+        reason: `resolved type ${entity.type} (${entity.name})`,
+      });
+    } else if (t.includes("book")) {
+      push({
+        filterType: "urn:entity:book",
+        reason: `resolved type ${entity.type} (${entity.name})`,
+      });
+    }
+  }
 
-  const hasFilmVisual =
-    /\b(ghibli|movie|film|anime|totoro|spirited)\b/i.test(text) ||
-    resolved.some((e) => /ghibli|spirited|totoro/i.test(e.name));
+  for (const t of inferred) {
+    const lower = t.toLowerCase();
+    if (lower.includes("artist")) {
+      push({ filterType: "urn:entity:artist", reason: "signal inferred artist type" });
+    } else if (lower.includes("movie") || lower.includes("tv_show")) {
+      push({ filterType: "urn:entity:movie", reason: "signal inferred film/TV type" });
+    } else if (lower.includes("brand")) {
+      push({ filterType: "urn:entity:brand", reason: "signal inferred brand type" });
+    }
+  }
 
-  const hasFashionBrand =
-    /\b(fashion|nike|brand|urban fashion|streetwear)\b/i.test(text);
-
-  if (hasMusic || resolved.length > 0) {
-    plan.push({
+  // Genre / theme cues without forcing artist for every resolved entity.
+  if (/\b(jazz|reggaeton|salsa|hip hop|hip-hop|electronic|cumbia|rock|music|dance)\b/i.test(text)) {
+    push({
       filterType: "urn:entity:artist",
-      reason: "cross-domain / same-domain music affinities",
+      reason: "music/genre theme in signals",
     });
   }
-
-  if (hasFilmVisual) {
-    plan.push({
+  if (/\b(ghibli|movie|film|anime|totoro|spirited|cinema)\b/i.test(text)) {
+    push({
       filterType: "urn:entity:movie",
-      reason: "film/animation taste expansion",
+      reason: "film/animation theme in signals",
     });
   }
-
-  if (hasFashionBrand || kinds.has("genre_or_theme")) {
-    plan.push({
+  if (/\b(fashion|nike|brand|streetwear|urban fashion)\b/i.test(text)) {
+    push({
       filterType: "urn:entity:brand",
-      reason: "brand/lifestyle affinities for cultural matching",
+      reason: "fashion/brand theme in signals",
     });
   }
 
-  // Places only when we have solid entity signals — Medellín inventory is sparse/noisy for creatives.
+  // Places only with solid entity signals — Path A ranks indexed venues separately.
   if (resolved.length > 0 && city.toLowerCase().includes("medell")) {
-    plan.push({
+    push({
       filterType: "urn:entity:place",
       locationQuery: city,
       reason: "location-filtered place affinities (matched carefully against catalogue)",
     });
   }
 
-  // Ensure at least one insights call when we have entities
+  // Fallback when we have entities but no domain cue — probe from the first usable resolved type.
   if (plan.length === 0 && resolved.length > 0) {
-    plan.push({
-      filterType: "urn:entity:artist",
-      reason: "default affinity probe from resolved entities",
-    });
+    const first = resolved.find((e) => e.type && !/place|locality/i.test(e.type));
+    if (first?.type && /movie|tv_show/i.test(first.type)) {
+      push({
+        filterType: "urn:entity:movie",
+        reason: "fallback probe from resolved film entity",
+      });
+    } else if (first?.type && /brand/i.test(first.type)) {
+      push({
+        filterType: "urn:entity:brand",
+        reason: "fallback probe from resolved brand entity",
+      });
+    } else if (first?.type && /artist|person/i.test(first.type)) {
+      push({
+        filterType: "urn:entity:artist",
+        reason: "fallback probe from resolved artist entity",
+      });
+    } else {
+      // Last resort: untyped cultural expansion via artist domain is still better than inventing affinities.
+      push({
+        filterType: "urn:entity:artist",
+        reason: "bounded fallback affinity probe (no clearer domain available)",
+      });
+    }
   }
 
-  // Keep the plan short — Insights latency on hackathon API can exceed 15s per call.
   return plan.slice(0, 3);
+}
+
+export function kindsForIntent(intent: DiscoveryIntent): CatalogueKind[] | undefined {
+  if (intent === "creators") return ["creator", "project"];
+  if (intent === "places") return ["venue"];
+  return undefined;
 }
 
 function setStep(

@@ -1,6 +1,6 @@
 # Project status — resume checkpoint
 
-**Last updated:** 2026-10-30 (native ranking QA hardening)  
+**Last updated:** 2026-10-30 (intelligent cultural matchmaking)  
 **Active branch:** `feature/qloo-native-intelligence`  
 **Target remote:** https://github.com/DOVRC/bragi-qloo  
 
@@ -12,32 +12,31 @@
 | SHA | `149f1b9` |
 | Credential | Treat as unrotated/`hack_` until Daniel rotates — **merge blocked** |
 
-## Feature branch hardening
+## Feature branch — matchmaking upgrade
 
-- Ranking uses **`query.affinity`**, never popularity  
-- Candidate vs aggregate explainability separated  
-- Removed false Qloo IDs (MAMM = Mexico City; Orquideorama ≠ full Jardín program)  
-- Indexed Medellín places: Teatro Pablo Tobón, Teatro Metropolitano  
-- Insights concurrency/timeout budget for 60s route  
-- Docs: [`QLOO_NATIVE_VALIDATION.md`](QLOO_NATIVE_VALIDATION.md)
+- Intent-aware merge (`creators` / `places` / `mixed`) — native Path A no longer monopolizes all slots
+- Affinity highlight uses evidence-backed ids (explainability + hook overlap), never venue self-id
+- Live mode never injects demonstration catalogue profiles
+- Adaptive Insights domain planning from resolved Qloo types (no blind artist default)
+- Discovery deadline 50s; bounded Search/Tags/Insights parallelism; instance GET cache
+- Taste Journey intent selector + creator-aware “Why” copy
+- Quality suite: 10 cultural profiles (see matchmaking.quality.test metrics)
 
 ## Verify
 
 ```bash
 npm ci && npm run typecheck && npm test && npm run lint && npm run build
-npm audit --omit=dev && npm run qloo:ablation
+npm audit --omit=dev
 ```
 
 ## PR
 
-https://github.com/DOVRC/bragi-qloo/pull/1 · tip `1df6186` · CI green · Vercel preview READY  
+https://github.com/DOVRC/bragi-qloo/pull/1  
 
-Preview: https://bragi-qloo-jnh9ow50s-daniel-o-s-projects1.vercel.app/  
-(**No Preview `QLOO_API_KEY`** — Explore correctly errors; live Path A verified locally.)
+Preview requires rotated Preview `QLOO_API_KEY` for live Taste Journey steps 2–4.
 
 ## Remaining before merge
 
-1. Rotate Qloo API key → update Vercel Production **and** Preview Secrets  
+1. Rotate Qloo API key → Vercel Production **and** Preview Secrets  
 2. Re-run Taste Journey steps 2–4 on preview with live key  
 3. Merge via GitHub PR only — **not merged** while key unrotated  
-

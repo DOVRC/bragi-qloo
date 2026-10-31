@@ -47,4 +47,10 @@ describe("classifySignal", () => {
     expect(s.kind).toBe("named_entity");
     expect(s.inferredType).toBe("urn:entity:artist");
   });
+
+  it("does not invent an artist type for unknown named entities", () => {
+    const s = classifySignal("Frida Kahlo");
+    expect(s.kind).toBe("named_entity");
+    expect(s.inferredType).toBeUndefined();
+  });
 });

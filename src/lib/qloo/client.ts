@@ -15,6 +15,8 @@ export interface SearchParams {
   query: string;
   types?: QlooEntityType[];
   take?: number;
+  /** Optional per-call timeout override (ms) */
+  timeoutMs?: number;
 }
 
 export interface InsightsParams {
@@ -36,6 +38,8 @@ export class QlooService {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
+  /** Instance-scoped GET memoization — dedupes identical Qloo paths within one agent run. */
+  private readonly inFlight = new Map<string, Promise<unknown>>();
 
   constructor(options: QlooClientOptions = {}) {
     this.apiKey = options.apiKey ?? process.env.QLOO_API_KEY;
@@ -57,7 +61,7 @@ export class QlooService {
     if (params.types?.length) qs.set("types", params.types.join(","));
     if (params.take) qs.set("take", String(params.take));
 
-    const payload = await this.request(`/search?${qs.toString()}`);
+    const payload = await this.requestCached(`/search?${qs.toString()}`, params.timeoutMs);
     return normalizeQlooEntities(payload);
   }
 
@@ -85,7 +89,7 @@ export class QlooService {
     }
     if (params.take) qs.set("take", String(params.take));
 
-    const raw = await this.request(`/v2/insights?${qs.toString()}`, params.timeoutMs);
+    const raw = await this.requestCached(`/v2/insights?${qs.toString()}`, params.timeoutMs);
     return {
       entities: normalizeQlooEntities(raw),
       tags: extractTagNames(raw),
@@ -94,14 +98,30 @@ export class QlooService {
   }
 
   /** Search Qloo tags (for genre/theme signals). */
-  async searchTags(query: string, take = 5): Promise<Array<{ id: string; name: string }>> {
+  async searchTags(
+    query: string,
+    take = 5,
+    options: { timeoutMs?: number } = {},
+  ): Promise<Array<{ id: string; name: string }>> {
     const qs = new URLSearchParams();
     qs.set("filter.query", query);
     qs.set("take", String(take));
     qs.set("feature.typo_tolerance", "true");
 
-    const raw = await this.request(`/v2/tags?${qs.toString()}`);
+    const raw = await this.requestCached(`/v2/tags?${qs.toString()}`, options.timeoutMs);
     return normalizeTags(raw);
+  }
+
+  private requestCached(pathWithQuery: string, timeoutMs?: number): Promise<unknown> {
+    const key = pathWithQuery;
+    const existing = this.inFlight.get(key);
+    if (existing) return existing;
+    const pending = this.request(pathWithQuery, timeoutMs).catch((err) => {
+      this.inFlight.delete(key);
+      throw err;
+    });
+    this.inFlight.set(key, pending);
+    return pending;
   }
 
   /** Minimal connectivity check — one small search. */

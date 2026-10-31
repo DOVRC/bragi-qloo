@@ -131,4 +131,21 @@ describe("CatalogueService.match", () => {
       ),
     ).toBe(true);
   });
+
+  it("can restrict to creators/projects and never returns demonstration when excluded", () => {
+    const service = new CatalogueService();
+    const creators = service.match(urbanProfile(), 5, {
+      includeDemonstration: false,
+      kinds: ["creator", "project"],
+    });
+    expect(creators.length).toBeGreaterThan(0);
+    expect(
+      creators.every(
+        (r) =>
+          (r.entry.kind === "creator" || r.entry.kind === "project") &&
+          r.entry.provenance === "verified_public",
+      ),
+    ).toBe(true);
+    expect(creators.every((r) => !r.entry.qlooEntityId)).toBe(true);
+  });
 });

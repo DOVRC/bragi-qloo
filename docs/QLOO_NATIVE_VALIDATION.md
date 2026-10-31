@@ -1,7 +1,7 @@
 # Qloo native intelligence — validation notes
 
 **Branch:** `feature/qloo-native-intelligence`  
-**Updated:** 2026-10-30 (affinity/explainability hardening)  
+**Updated:** 2026-10-30 (intent-aware matchmaking)  
 **Host:** `https://hackathon.api.qloo.com` only  
 
 Fixture tests ≠ live verification. No accuracy claims without external judgments.
@@ -53,10 +53,17 @@ Creators/projects remain Path B only (no fabricated Qloo IDs).
 | A — `qloo_native` | `filter.results.entities` + `feature.explainability` | `query.affinity` when present |
 | B — `bragi_catalogue` | Evidence-aware hooks/tags | Bragi point score |
 
+**Merge rules (intent-aware):** native affinity and Bragi scores are never equated. Path A does not monopolize all top-3 slots when complementary Path B creators/projects exist. Intents: `creators` | `places` | `mixed` (Surprise me).
+
+**Affinity UI highlight:** `matchedAffinityIds` are evidence-backed (candidate explainability inputs + hook-overlapping Insights affinities/tags). The candidate’s own Qloo entity id is **not** treated as an exploratory affinity.
+
+**Live catalogue honesty:** demonstration profiles are never injected when live verified matches are empty.
+
 ## Performance
 
-- Exploratory Insights: max 2 concurrent calls, **18s** per-call timeout; place fan-out removed (covered by Path A).
-- Native Path A Insights: **20s** timeout.
+- Overall discovery deadline: **50s** (under Vercel 60s `maxDuration`).
+- Search resolves: chunks of 2, **12s** timeout; Tags **10s**; exploratory Insights max 2 concurrent, **~16s**; native Path A **~18s**.
+- Instance-scoped GET memoization avoids duplicate identical Qloo paths within one agent run.
 - Live Path A probe for 4 candidates: ~**194ms** once Search resolved (hackathon variance still applies).
 - Route `maxDuration` remains 60s; sequential 45s×N calls avoided.
 

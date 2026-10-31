@@ -8,7 +8,7 @@ import {
   Network,
   SlidersHorizontal,
 } from "lucide-react";
-import type { DiscoverResponse, DiscoverSuccess } from "@/lib/types";
+import type { DiscoverResponse, DiscoverSuccess, DiscoveryIntent } from "@/lib/types";
 import { buildDiscoverQuery, PRESET_A, PRESET_B } from "@/lib/presets";
 import { TasteSelector } from "./TasteSelector";
 import { AffinityConnections } from "./AffinityConnections";
@@ -18,10 +18,33 @@ import { AgentSteps } from "./AgentSteps";
 
 type Step = 1 | 2 | 3 | 4;
 
+const INTENT_OPTIONS: {
+  id: DiscoveryIntent;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "creators",
+    label: "Creators",
+    hint: "Independent artists, collectives, and cultural projects",
+  },
+  {
+    id: "places",
+    label: "Places",
+    hint: "Venues, museums, and public cultural spaces",
+  },
+  {
+    id: "mixed",
+    label: "Surprise me",
+    hint: "A balanced mix of creators and places",
+  },
+];
+
 export function TasteJourney() {
   const [step, setStep] = useState<Step>(1);
   const [selected, setSelected] = useState<string[]>([...PRESET_A]);
   const [budgetCop, setBudgetCop] = useState(100_000);
+  const [intent, setIntent] = useState<DiscoveryIntent>("mixed");
   const [result, setResult] = useState<DiscoverSuccess | null>(null);
   const [previous, setPrevious] = useState<DiscoverSuccess | null>(null);
   const [pending, startTransition] = useTransition();
@@ -68,6 +91,7 @@ export function TasteJourney() {
             signals: selected,
             city: "Medellín",
             budgetCop,
+            intent,
           }),
         });
         const data = (await res.json()) as DiscoverResponse;
@@ -100,7 +124,24 @@ export function TasteJourney() {
     setActiveAffinityId(null);
     setSelectedRecId(null);
     setSelected([...PRESET_A]);
+    setIntent("mixed");
   }
+
+  const focusedRec = useMemo(() => {
+    if (!result) return null;
+    return (
+      result.recommendations.find((r) => r.entry.id === selectedRecId) ??
+      result.recommendations[0] ??
+      null
+    );
+  }, [result, selectedRecId]);
+
+  const whyHeading = useMemo(() => {
+    const kind = focusedRec?.entry.kind;
+    if (kind === "creator") return "Why this creator fits your taste";
+    if (kind === "project") return "Why this creative space fits your taste";
+    return "Why this place fits your taste";
+  }, [focusedRec]);
 
   const highlightedRecIds = useMemo(() => {
     if (!result || !activeAffinityId) return new Set<string>();
@@ -153,6 +194,37 @@ export function TasteJourney() {
                 <h3 className="font-display text-xl">What inspires you?</h3>
               </div>
               <TasteSelector selected={selected} onChange={setSelected} />
+
+              <fieldset className="mt-8">
+                <legend className="text-sm font-medium text-bragi-navy">
+                  What do you want to discover?
+                </legend>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {INTENT_OPTIONS.map((option) => {
+                    const active = intent === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setIntent(option.id)}
+                        className={`rounded-2xl border px-3 py-3 text-left transition duration-200 ease-out ${
+                          active
+                            ? "border-bragi-accent bg-bragi-accent/10 shadow-[0_8px_24px_rgba(75,98,193,0.12)]"
+                            : "border-bragi-ink/10 bg-bragi-cream/40 hover:border-bragi-accent/35"
+                        }`}
+                      >
+                        <span className="block font-display text-lg text-bragi-navy">
+                          {option.label}
+                        </span>
+                        <span className="mt-1 block text-[11px] leading-snug text-bragi-navy/55">
+                          {option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               <label className="mt-8 block max-w-xs space-y-2">
                 <span className="text-sm font-medium text-bragi-navy">Budget (COP)</span>
@@ -316,8 +388,8 @@ export function TasteJourney() {
                       <h3 className="font-display text-2xl">Where your tastes could take you</h3>
                     </div>
                     <p className="mt-1 text-sm text-bragi-navy/60">
-                      Curated Medellín catalogue matches — venues and programs, not confirmed
-                      tickets.
+                      Curated Medellín matches — creators and cultural spaces with evidence. Not
+                      confirmed tickets or live event inventories.
                     </p>
                   </div>
                   <button
@@ -341,8 +413,9 @@ export function TasteJourney() {
                   <div className="rounded-[1.5rem] border border-bragi-ink/10 bg-white p-6 text-sm text-bragi-navy/70">
                     <p className="font-display text-xl text-bragi-navy">No clear local matches</p>
                     <p className="mt-2">
-                      Taste evidence was retrieved, but nothing cleared the evidence threshold.
-                      Refine interests or raise budget.
+                      Taste evidence was retrieved, but nothing cleared the evidence threshold for
+                      this intent. Bragi does not invent demonstration profiles in live mode —
+                      refine interests, switch intent, or raise budget.
                     </p>
                   </div>
                 ) : (
@@ -397,9 +470,7 @@ export function TasteJourney() {
                   <ArrowLeft className="h-4 w-4" aria-hidden />
                   All recommendations
                 </button>
-                <h3 className="font-display text-2xl text-bragi-navy">
-                  Why this place fits your taste
-                </h3>
+                <h3 className="font-display text-2xl text-bragi-navy">{whyHeading}</h3>
                 {(selectedRecId
                   ? result.recommendations.filter((r) => r.entry.id === selectedRecId)
                   : result.recommendations.slice(0, 1)

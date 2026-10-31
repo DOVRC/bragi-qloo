@@ -9,6 +9,7 @@ import {
 import { humanizeTagId } from "@/lib/qloo/normalize";
 import type {
   CatalogueEntry,
+  CatalogueKind,
   EvidenceStrength,
   MatchContribution,
   Recommendation,
@@ -28,6 +29,8 @@ export interface CatalogueFilter {
   city?: string;
   budgetCop?: number;
   includeDemonstration?: boolean;
+  /** When set, only include these catalogue kinds (venue / creator / project). */
+  kinds?: CatalogueKind[];
 }
 
 export type MatchMode = "full" | "user_only" | "search_only" | "insights_only";
@@ -56,6 +59,10 @@ export class CatalogueService {
       if (filter.includeDemonstration === false && entry.provenance === "demonstration") {
         return false;
       }
+      if (filter.kinds?.length) {
+        const kind = entry.kind ?? "venue";
+        if (!filter.kinds.includes(kind)) return false;
+      }
       return true;
     });
   }
@@ -63,12 +70,17 @@ export class CatalogueService {
   match(
     profile: TasteProfile,
     limit = 3,
-    options: { includeDemonstration?: boolean; mode?: MatchMode } = {},
+    options: {
+      includeDemonstration?: boolean;
+      mode?: MatchMode;
+      kinds?: CatalogueKind[];
+    } = {},
   ): Recommendation[] {
     const candidates = this.list({
       city: profile.city,
       budgetCop: profile.budgetCop,
       includeDemonstration: options.includeDemonstration ?? true,
+      kinds: options.kinds,
     });
 
     const scored = candidates
@@ -240,7 +252,13 @@ function scoreEntry(
 
   if (entry.provenance === "verified_public") {
     score += 1.5;
-    contributions.push({ kind: "catalogue", label: "Verified venue", points: 1.5 });
+    const label =
+      entry.kind === "creator"
+        ? "Verified creator"
+        : entry.kind === "project"
+          ? "Verified creative project"
+          : "Verified venue";
+    contributions.push({ kind: "catalogue", label, points: 1.5 });
   }
   if (entry.provenance === "demonstration") {
     score -= 0.5;
@@ -261,7 +279,11 @@ function scoreEntry(
     detail:
       entry.provenance === "demonstration"
         ? "Catalogue provenance: demonstration profile (not a live booking)."
-        : "Catalogue provenance: verified public venue/program.",
+        : entry.kind === "creator"
+          ? "Catalogue provenance: verified public creator profile (not a ticketed event)."
+          : entry.kind === "project"
+            ? "Catalogue provenance: verified public creative project/space (check live programming separately)."
+            : "Catalogue provenance: verified public venue/program (event availability is not confirmed here).",
   });
 
   const sourceDomains = domainsFromSignals(
