@@ -1,55 +1,60 @@
 # Guided demo — Bragi Taste Journey
 
-For Devpost judges unfamiliar with the project.
+For Devpost judges unfamiliar with the project. Use **Production:** https://bragi-qloo.vercel.app  
+(`SAMPLE_DATA_MODE=false` — live Qloo). Local: `npm run dev` → http://localhost:3000 · [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## What to open
+Results vary with Qloo latency and Insights coverage. Never hardcode or promise exact creators or order.
 
-1. **Production:** https://bragi-qloo.vercel.app — or `npm run dev` → `http://localhost:3000`
-2. Scroll to **Taste journey** (or click **Find my matches** / **Discover**)
-3. Production uses live Qloo (`SAMPLE_DATA_MODE=false`). See [DEPLOYMENT.md](DEPLOYMENT.md).
+---
 
-## Walkthrough A — Art-house
+## 60–90 second walkthrough (preferred)
 
-1. Click **Art-house explorer** (or keep Radiohead, Studio Ghibli, experimental jazz).
-2. Click **Explore my connections**.
-3. Wait for the honest loading state (several seconds; live Qloo).
-4. **Step 2 — Connections:** inspect resolved entities and **discovered** Insights affinities. Click an affinity card — matching places highlight on step 3.
-5. Click **See Medellín matches**.
-6. Open a card’s **How we found this**; note evidence strength badge (e.g. Cross-domain affinity).
-7. Optional: **Open connection story** / official site (`rel=noopener`).
+**Input:** **Local creators demo** (`alternative rock` · `post-punk` · `experimental music`) · intent **Creators**.
 
-## Walkthrough B — Urban culture
+| # | Show | Where in UI |
+| --- | --- | --- |
+| 1 | Cultural interests | Step **1. Interests** — chips prefilled; intent **Creators** pressed |
+| 2 | Qloo Search / Insights | Click **Explore my connections** → step **2. Connections** (resolved entities + discovered affinities / theme tags) |
+| 3 | New cultural affinities | Affinity cards under Connections (from live Insights, not typed by the user) |
+| 4 | Local independent creator | **See Medellín matches** → step **3. Medellín** ranked cards |
+| 5 | Taste-to-Creator Bridge | Bridge panel on Medellín / Why — interest → resolve → affinity → catalogue match → portfolio |
+| 6 | What Qloo Changed | Comparison of user-signal-only vs Qloo-enriched under the **same** city / intent / score floor |
+| 7 | Creator portfolio | Outbound link on a card (`rel=noopener`) — Bandcamp / Instagram / site as listed |
+| 8 | One feedback interaction | **More like this**, **Not my style**, or **Surprise me again** |
 
-1. Click **Change interests** (or step **1. Interests**).
-2. Click **Urban culture explorer**.
-3. **Explore my connections** again.
-4. Read the **Compared with your previous run** panel (affinities added/removed; places changed or not — reported honestly).
-5. Inspect new affinities and places.
+Optional: open **How we found this** / step **4. Why** for contribution provenance and evidence strength.
 
-## What comes from Qloo
+### Where Qloo ends and Bragi begins
 
-| UI element | Source |
+| Layer | Source |
 | --- | --- |
-| Autocomplete suggestions | Live `GET /search` |
-| Resolved entities | Live Search (+ name-match) |
-| Discovered affinities / theme tags | Live Insights (+ Tags when genres present) |
-| Venue list | Bragi curated catalogue ranked with Qloo evidence |
-| Evidence strength | Derived from contribution points, not invented % |
+| Autocomplete | Live `GET /api/search` → Qloo Search |
+| Resolved entities / theme tags | Qloo Search (+ Tags when genres present) |
+| Discovered affinities | Qloo Insights |
+| Ranked Medellín list | **Bragi** curated catalogue scored against Qloo evidence (`rankingPath`: `qloo_native` for verified place IDs, else `bragi_catalogue`) |
+| Taste→Creator Bridge / What Qloo Changed | Bragi UI over the same discovery payload — no invented lifts |
 
-## What is **not** guaranteed
+---
 
-- Exact venue order (API latency, Insights coverage, budget filter).
-- That every affinity maps to a venue (highlight only when `matchedAffinityIds` contains it).
+## Alternative walkthrough (if preferred profile is thin or times out)
+
+1. Click **Art-house explorer** (Radiohead · Studio Ghibli · experimental jazz) or **Urban culture explorer**.
+2. Keep **Creators** or switch to **Surprise me** / **Places**.
+3. **Explore my connections** again; if the error banner appears, retry with fewer chips or wait and explore again.
+4. Continue from Connections → Medellín → Bridge / What Qloo Changed → one feedback action.
+
+Live mode **never** silently falls back to sample profiles. Sample mode only when `SAMPLE_DATA_MODE=true` (labeled banner).
+
+---
+
+## What is not guaranteed
+
+- Exact creator/venue order (API latency, Insights coverage, budget filter).
+- That every affinity highlights a catalogue row.
 - Live events or ticket availability (never claimed).
-
-## If Qloo times out / fails
-
-- Error banner shows the API code/message.
-- **No silent sample fallback** in live mode.
-- Retry with fewer signals or wait and explore again.
-- Sample mode only when `SAMPLE_DATA_MODE=true` (must be labeled).
 
 ## Recovery
 
 - **Reset journey** clears comparison state.
 - **Back to last results** keeps the previous successful response while you edit interests.
+- Error banner shows API code/message — retry; do not invent matches.
