@@ -14,7 +14,9 @@ import type {
   DiscoveryIntent,
   Recommendation,
 } from "@/lib/types";
-import { buildDiscoverQuery, PRESET_A, PRESET_B } from "@/lib/presets";
+import { buildDiscoverQuery, PRESET_A, PRESET_B, PRESET_CREATORS } from "@/lib/presets";
+import { partitionDiscoveryWarnings } from "@/lib/discoveryWarnings";
+import { buildTasteBridge, selectPrimaryBridge } from "@/lib/tasteBridge";
 import { TasteSelector } from "./TasteSelector";
 import { AffinityConnections } from "./AffinityConnections";
 import { RecommendationCard } from "./RecommendationCard";
@@ -22,6 +24,8 @@ import { TasteEvidencePanel } from "./TasteEvidencePanel";
 import { AgentSteps } from "./AgentSteps";
 import { TasteDna } from "./TasteDna";
 import { NativeAffinityCompare } from "./NativeAffinityCompare";
+import { TasteBridgePanel } from "./TasteBridge";
+import { WhatQlooChanged } from "./WhatQlooChanged";
 import {
   moreLikeSignals,
   pickNextSurpriseAffinity,
@@ -358,6 +362,21 @@ export function TasteJourney() {
               <div className="mt-5 space-y-3">
                 <button
                   type="button"
+                  onClick={() => {
+                    setSelected([...PRESET_CREATORS]);
+                    setIntent("creators");
+                  }}
+                  className="w-full rounded-2xl border border-bragi-accent/30 bg-bragi-accent/5 px-4 py-3 text-left transition hover:border-bragi-accent/50"
+                >
+                  <span className="block text-sm font-semibold text-bragi-navy">
+                    Local creators demo
+                  </span>
+                  <span className="mt-1 block text-xs text-bragi-navy/55">
+                    alternative rock · post-punk · experimental music → Medellín independents
+                  </span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setSelected([...PRESET_A])}
                   className="w-full rounded-2xl border border-bragi-ink/10 bg-white px-4 py-3 text-left transition hover:border-bragi-accent/40"
                 >
@@ -493,13 +512,14 @@ export function TasteJourney() {
                   </p>
                 )}
 
-                {result.warnings.length > 0 && (
-                  <ul className="space-y-1 border-l-2 border-bragi-ink/20 pl-4 text-sm text-bragi-navy/65">
-                    {result.warnings.map((w) => (
-                      <li key={w}>{w}</li>
-                    ))}
-                  </ul>
-                )}
+                <DiscoveryWarnings warnings={result.warnings} />
+
+                {(() => {
+                  const bridge = selectPrimaryBridge(result);
+                  return bridge ? <TasteBridgePanel bridge={bridge} /> : null;
+                })()}
+
+                <WhatQlooChanged result={result} />
 
                 <TasteDna result={result} />
                 <NativeAffinityCompare recommendations={result.recommendations} />
@@ -579,9 +599,15 @@ export function TasteJourney() {
                 {(selectedRecId
                   ? result.recommendations.filter((r) => r.entry.id === selectedRecId)
                   : result.recommendations.slice(0, 1)
-                ).map((rec, i) => (
-                  <RecommendationCard key={rec.entry.id} recommendation={rec} rank={i} />
-                ))}
+                ).map((rec, i) => {
+                  const bridge = buildTasteBridge(result, rec);
+                  return (
+                    <div key={rec.entry.id} className="space-y-4">
+                      {bridge && <TasteBridgePanel bridge={bridge} />}
+                      <RecommendationCard recommendation={rec} rank={i} />
+                    </div>
+                  );
+                })}
 
                 <div className="rounded-[1.5rem] border border-bragi-ink/8 bg-white/90 p-5">
                   <TasteEvidencePanel profile={result.profile} mode={result.mode} />
@@ -595,6 +621,34 @@ export function TasteJourney() {
         )}
       </div>
     </section>
+  );
+}
+
+function DiscoveryWarnings({ warnings }: { warnings: string[] }) {
+  const { userFacing, technical } = partitionDiscoveryWarnings(warnings);
+  if (!userFacing.length && !technical.length) return null;
+  return (
+    <div className="space-y-2">
+      {userFacing.length > 0 && (
+        <ul className="space-y-1 border-l-2 border-bragi-accent/40 pl-4 text-sm text-bragi-navy/75">
+          {userFacing.map((w) => (
+            <li key={w}>{w}</li>
+          ))}
+        </ul>
+      )}
+      {technical.length > 0 && (
+        <details className="rounded-2xl border border-bragi-ink/8 bg-bragi-paper/50 px-4 py-3 text-sm text-bragi-navy/60">
+          <summary className="cursor-pointer font-semibold text-bragi-navy/70">
+            Technical details (for judges)
+          </summary>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {technical.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }
 

@@ -21,6 +21,8 @@ export const SUGGESTED_PREFERENCES: PreferenceOption[] = [
 
 export const PRESET_A = ["Radiohead", "Studio Ghibli", "experimental jazz"];
 export const PRESET_B = ["reggaeton", "urban fashion", "latin dance"];
+/** Reliable creator-focused demo — Medellín independent music / DIY scene */
+export const PRESET_CREATORS = ["alternative rock", "post-punk", "experimental music"];
 
 export function buildDiscoverQuery(signals: string[], city: string, budgetCop?: number) {
   const list = signals.join(", ");
