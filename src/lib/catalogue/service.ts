@@ -74,6 +74,8 @@ export class CatalogueService {
       includeDemonstration?: boolean;
       mode?: MatchMode;
       kinds?: CatalogueKind[];
+      /** Override evidence floor (e.g. softer baseline for Qloo-delta comparison). */
+      minScore?: number;
     } = {},
   ): Recommendation[] {
     const candidates = this.list({
@@ -83,14 +85,19 @@ export class CatalogueService {
       kinds: options.kinds,
     });
 
+    const floor = options.minScore ?? MIN_MATCH_SCORE;
     const scored = candidates
       .map((entry) => scoreEntry(entry, profile, options.mode ?? "full"))
-      .filter((r) => r.score >= MIN_MATCH_SCORE)
+      .filter((r) => r.score >= floor)
       .sort((a, b) => {
+        // Total evidence score first — Insights tag spam must not bury strong Search matches.
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.qlooSearchPoints !== a.qlooSearchPoints) {
+          return b.qlooSearchPoints - a.qlooSearchPoints;
+        }
         if (b.qlooInsightsPoints !== a.qlooInsightsPoints) {
           return b.qlooInsightsPoints - a.qlooInsightsPoints;
         }
-        if (b.score !== a.score) return b.score - a.score;
         if (a.entry.provenance !== b.entry.provenance) {
           return a.entry.provenance === "verified_public" ? -1 : 1;
         }
@@ -192,6 +199,10 @@ function scoreEntry(
       if (/\d{4}s\s+fashion/.test(leafLower) && !fashionContext) continue;
       if (/wall street journal|newspaper|magazine/.test(leafLower)) continue;
       if (/amenity|wheelchair|parking|wifi|hours|signage/.test(leafLower)) continue;
+      // Too generic to discriminate local creators — causes cross-genre tag spam
+      if (/^(independent|indie|music|band|artist|colombia|colombian|latin)$/.test(leafLower)) {
+        continue;
+      }
       const variants = [tag.toLowerCase(), leafLower].filter((v) => v.length >= 4);
       for (const v of variants) {
         if (

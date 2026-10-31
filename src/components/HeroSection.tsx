@@ -28,12 +28,15 @@ export function HeroSection() {
             Medellín cultural discovery
           </p>
           <h1 className="mt-4 max-w-xl font-display text-4xl leading-[1.08] tracking-tight text-bragi-cream sm:text-5xl lg:text-[3.5rem]">
-            Find the next place your taste belongs.
+            Bragi
           </h1>
+          <p className="mt-3 max-w-xl font-display text-2xl leading-snug text-bragi-cream/90 sm:text-3xl">
+            From the culture you love to Medellín’s independent creators.
+          </p>
           <p className="mt-5 max-w-md text-base leading-relaxed text-bragi-mist/75 sm:text-lg">
-            Share the music, film, and culture you love. Bragi quietly uses Qloo
-            taste intelligence to surface local experiences in Medellín — with the
-            why made clear.
+            Qloo maps your tastes across music, film, and art. Bragi connects those
+            affinities to verified local creators, projects, and places — with an
+            inspectable why.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a

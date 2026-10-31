@@ -1,62 +1,74 @@
-# Devpost materials — Bragi Taste Agent
+# Bragi — Devpost submission copy
 
-**Public demo (production):** https://bragi-qloo.vercel.app  
-**Repository:** https://github.com/DOVRC/bragi-qloo  
-**PR:** https://github.com/DOVRC/bragi-qloo/pull/1  
+**Production:** https://bragi-qloo.vercel.app  
+**Repo:** https://github.com/DOVRC/bragi-qloo  
 
-Screenshots: `docs/screenshots/` (no secrets).
+## Elevator pitch
+
+Bragi turns the culture you already love into discoverable Medellín independent creators, projects, and places — powered by Qloo taste intelligence, with an inspectable path from interest → affinity → local match.
+
+## The problem
+
+International taste graphs rarely surface underrepresented local independent creators. People who love alternative rock, experimental sound, hip-hop, or video art often rediscover the same global names — while Medellín’s DIY bands, labels, and art projects stay invisible unless you already know where to look.
+
+Static city guides and keyword search do not explain *why* a local creator fits a taste. Attaching an API without provenance is not cultural discovery.
+
+## What we built
+
+You choose interests and an intent (**Creators**, **Places**, or **Surprise me**). Bragi resolves those signals with **Qloo Search, Tags, and Insights**, then ranks a curated Medellín catalogue with dual-path evidence:
+
+1. **Qloo-native** ranking for catalogue venues that carry verified Qloo place IDs (`query.affinity`, never popularity-as-affinity).
+2. **Bragi catalogue** matching for creators and projects using Insights affinities/tags + transparent scores.
+
+Signature UX:
+
+- **Taste → local creator bridge** — evidence-backed hops only (interest → Search resolve → Insights affinity → Bragi match → portfolio).
+- **What Qloo changed** — same input compared as user-signal-only vs Qloo-enriched (no extra API calls, no invented lifts).
+- **Taste DNA**, candidate explainability, More like this / Not my style / Surprise me again (`prioritySignals` inside a 5-signal resolve budget).
+
+Live mode never invents demonstration profiles when evidence is empty.
+
+## What Qloo actually contributes
+
+Qloo is not a logo on a static list. For the same interests, Insights often introduce cultural entities and tags the user never typed. Bragi shows which local recommendations **depend on that evidence** versus direct catalogue keyword overlap — and admits when both paths agree.
+
+## Catalogue integrity
+
+The Medellín catalogue is audited for geography and identity. A Bogotá-origin band previously mislabeled as Medellín was **removed**. New verified entries include Ferales, Nómada, tapelooplab, Intermediaciones, and Siempre Llueve Recs (see `docs/CATALOGUE_AUDIT.md`).
+
+## How to try it (judges)
+
+1. Open https://bragi-qloo.vercel.app  
+2. Click **Local creators demo** (or pick 5+ interests). Choose **Creators**.  
+3. Explore Connections → Medellín.  
+4. Inspect the **Taste → local creator** bridge and **What Qloo changed**.  
+5. Open Why / evidence; try More like this and Not my style.
+
+## Screenshots
 
 | File | Content |
 | --- | --- |
-| `00-production-hero.png` | Production landing |
-| `01-interests-five.png` | Interests with 5 tastes + intent selector |
-| `02-connections-live.png` | Live Qloo affinities (Connections) |
-| `02-taste-dna.png` | Taste DNA evidence shape |
-| `03-feedback-rerank.png` | More like this — prioritySignals + affinity delta |
-| `04-why-explainability.png` | Native candidate explainability (affinity vs popularity) |
-| `05-creator-discovery.png` | Independent creator (Odio a Botero) |
+| `docs/screenshots/00-production-hero.png` | Production landing |
+| `docs/screenshots/01-interests-five.png` | Interests + intent |
+| `docs/screenshots/02-connections-live.png` | Live Qloo affinities |
+| `docs/screenshots/02-taste-dna.png` | Taste DNA |
+| `docs/screenshots/03-feedback-rerank.png` | Feedback re-rank |
+| `docs/screenshots/04-why-explainability.png` | Native explainability |
+| `docs/screenshots/05-creator-discovery.png` | Creator discovery |
+| `docs/screenshots/06-taste-bridge.png` | Taste→creator bridge (post-sprint) |
+| `docs/screenshots/07-what-qloo-changed.png` | What Qloo changed (post-sprint) |
 
-## Paste-ready English description
+## Tech stack
 
-**Bragi Taste Agent** helps people discover Medellín creators and cultural spaces from the music, film, and culture they already love.
+Next.js 15 · React 19 · Qloo Hackathon API (Search / Tags / Insights) · Vercel · TypeScript  
 
-You choose interests and an intent (**Creators**, **Places**, or **Surprise me**). Bragi resolves those signals with **Qloo Search, Tags, and Insights**, then ranks a curated local catalogue with dual-path evidence:
+## Limitations & vision
 
-- **Qloo-native path** — verified Medellín place entity IDs scored with Insights `query.affinity` and **candidate** explainability (never popularity-as-affinity; aggregate explainability kept separate).
-- **Bragi catalogue path** — independent creators and projects matched to Qloo affinities when they are not confidently indexed in Qloo.
+- Catalogue is curated and finite — not a complete city inventory.  
+- Creator matches are evidence-aware Bragi scores informed by Qloo, not claims that Qloo ranked each artist entity.  
+- Temporary hackathon credentials should be rotated after the event.  
+- Next: broader verified coverage, multilingual UX, organizer tooling that preserves provenance.
 
-The four-step Taste Journey shows Connections, **Taste DNA** (evidence shape of the run), recommendations with **More like this / Not my style / Surprise me again**, and a Why step with inspectable provenance.
+## Team
 
-Feedback is not cosmetic: refinement signals are **prioritized inside a bounded five-signal Qloo Search budget** via `prioritySignals`, so More like this and Surprise me again can change what actually reaches Search/Tags/Insights. Surprise me again rotates unused Insights affinities instead of always repeating the first. Live mode never invents demonstration profiles when evidence is empty.
-
-## Built with
-
-Next.js 15 · React 19 · Qloo Hackathon API · Vercel · TypeScript · Vitest
-
-## How Qloo is used
-
-| Capability | Usage |
-| --- | --- |
-| Search | Resolve up to 5 prioritized cultural signals |
-| Tags | Genre/theme lookups (bounded) |
-| Insights | Affinity expansion + native `filter.results.entities` ranking |
-| Explainability | Per-candidate contributions on Why cards |
-
-## Demo script
-
-1. Open the public demo (or Preview after Preview `QLOO_API_KEY` is configured).
-2. Select 5+ interests if desired; choose **Surprise me**; Explore.
-3. Inspect Connections (live affinities) → Medellín matches → Taste DNA.
-4. Open Why on a **Ranked by Qloo Insights** card; note affinity vs popularity language.
-5. Try **Not my style**, then **More like this** / **Surprise me again** and confirm the resolve warning mentions prioritized feedback when >5 signals.
-
-## Known limitations
-
-- Preview historically lacked `QLOO_API_KEY` (Production-only) until rotated key is added to Preview.
-- Treat any previously screenshot-exposed `hack_` key as compromised until rotation is confirmed.
-- Native affinity comparison UI appears only when ≥2 native candidates return affinity.
-- Tickets/calendars are not booked; public URLs are pointers only.
-
-## Release gate
-
-Do **not** merge until: rotated Qloo key in Production **and** Preview, CI green, Preview live Taste Journey QA, no secret leakage.
+Daniel Ossa Velásquez · Yulian Bedoya — Colombia · Qloo Agentic Hackathon 2026

@@ -204,7 +204,11 @@ export function RecommendationCard({
               rel="noopener noreferrer"
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-bragi-navy px-4 text-sm font-semibold text-bragi-cream transition duration-200 ease-out hover:bg-bragi-ink"
             >
-              {entry.kind === "creator" ? "Public profile" : "Official site"}
+              {entry.kind === "creator"
+                ? "Explore portfolio"
+                : entry.kind === "project"
+                  ? "Visit project"
+                  : "Official site"}
               <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           )}
